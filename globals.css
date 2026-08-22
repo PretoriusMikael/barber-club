@@ -1,0 +1,211 @@
+/* Tailwind v4 entrypoint.
+   NOTE: v4 uses a single `@import "tailwindcss"`. The v3 `@tailwind base/components/utilities`
+   directives are silently ignored by @tailwindcss/postcss and ship a completely unstyled site. */
+@import "tailwindcss";
+
+@theme {
+  /* --- Surface ------------------------------------------------------------ */
+  --color-ink: #0b0b0c;
+  --color-ink-raised: #141416;
+  --color-ink-sunken: #060607;
+  --color-line: #24242a;
+
+  /* --- Type --------------------------------------------------------------- */
+  --color-bone: #f4f1ea;
+  --color-bone-dim: #b9b4ab;
+  --color-bone-faint: #8a857c;
+
+  /* --- Accent ------------------------------------------------------------
+     brass is RESERVED for the primary booking CTA. Nothing else may use it,
+     or the eye stops treating it as "the button that books". */
+  --color-brass: #c8a35a;
+  --color-brass-hi: #e2c184;
+  --color-brass-dim: #8e733e;
+
+  /* Secondary accent — barber-pole red. Used for the 3D scene + rare emphasis. */
+  --color-pole: #b4302b;
+
+  /* --- Fonts (wired to next/font in app/layout.tsx) ----------------------- */
+  --font-display: var(--font-bebas), "Impact", "Haettenschweiler", sans-serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+
+  /* --- Motion ------------------------------------------------------------- */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* --- shadcn-registry bridge ---------------------------------------------
+     Watermelon UI ships shadcn-registry components, which reference shadcn's
+     token names. Rather than fork every component to use ours, map their names
+     onto the Barber Club palette — they then drop in and inherit the brand.
+     Without this the classes simply do not exist and render unstyled. */
+  --color-ring: var(--color-brass);
+  --color-muted-foreground: var(--color-bone-faint);
+  --color-foreground: var(--color-bone);
+  --color-background: var(--color-ink);
+  --color-border: var(--color-line);
+
+  /* Radix Accordion animates to a height it measures at runtime and exposes as
+     --radix-accordion-content-height. */
+  --animate-accordion-down: accordion-down 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-accordion-up: accordion-up 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes accordion-down {
+  from {
+    height: 0;
+    opacity: 0;
+  }
+  to {
+    height: var(--radix-accordion-content-height);
+    opacity: 1;
+  }
+}
+
+@keyframes accordion-up {
+  from {
+    height: var(--radix-accordion-content-height);
+    opacity: 1;
+  }
+  to {
+    height: 0;
+    opacity: 0;
+  }
+}
+
+@layer base {
+  * {
+    border-color: var(--color-line);
+  }
+
+  html {
+    scroll-behavior: smooth;
+    /* Sticky header offset for #anchor jumps. */
+    scroll-padding-top: 5rem;
+  }
+
+  body {
+    background-color: var(--color-ink);
+    color: var(--color-bone);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background-color: var(--color-brass);
+    color: var(--color-ink);
+  }
+
+  /* Visible focus ring — the booking flow must be keyboard-completable. */
+  :focus-visible {
+    outline: 2px solid var(--color-brass);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    font-weight: 400;
+    letter-spacing: 0.01em;
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+}
+
+@layer components {
+  /* Scroll-reveal safety net.
+     Motion (see components/ui/Reveal.tsx) writes `opacity: 0` as an INLINE style
+     during SSR, so a failed hydration would otherwise leave a blank page. A CSS
+     rule with `!important` beats a non-important inline style, so this forces
+     every revealed block visible when scripting is unavailable.
+     Never hide content behind JS on a conversion path. */
+  .no-js [data-reveal],
+  .no-js [data-reveal] * {
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+  }
+
+  /* TextEffect splits on whitespace and renders every segment — including the
+     spaces — as `inline-block whitespace-pre`. An inline-block space cannot
+     collapse at a line break, so wrapped lines start with a visible indent.
+     Putting the segments back to `inline` fixes it. Only apply this where the
+     variants animate opacity/filter alone: transforms do not affect inline boxes. */
+  [data-text-effect="inline"] span[aria-hidden="true"] {
+    display: inline;
+  }
+
+  /* Hairline rule used between sections. */
+  .rule {
+    background-image: linear-gradient(
+      to right,
+      transparent,
+      var(--color-line) 15%,
+      var(--color-line) 85%,
+      transparent
+    );
+    height: 1px;
+  }
+
+  /* Film grain over the hero video. Pure CSS — no extra image request. */
+  .grain::after {
+    content: "";
+    position: absolute;
+    inset: -100%;
+    pointer-events: none;
+    opacity: 0.11;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+    animation: grain-shift 700ms steps(4) infinite;
+  }
+}
+
+@keyframes grain-shift {
+  0% {
+    transform: translate(0, 0);
+  }
+  25% {
+    transform: translate(-3%, 2%);
+  }
+  50% {
+    transform: translate(2%, -3%);
+  }
+  75% {
+    transform: translate(-2%, -2%);
+  }
+  100% {
+    transform: translate(0, 0);
+  }
+}
+
+/* Honour the OS setting. The 3D scene, scroll-scrub and parallax all check this
+   in JS too (see lib/motion.ts) — this rule is the belt-and-braces layer. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  /* Motion animates via rAF, so this media query alone cannot stop it — the
+     real guard is useReducedMotion() in Reveal.tsx. This is belt and braces. */
+  [data-reveal],
+  [data-reveal] * {
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+  }
+
+  .grain::after {
+    animation: none;
+  }
+}
