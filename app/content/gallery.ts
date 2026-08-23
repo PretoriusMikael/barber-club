@@ -20,7 +20,7 @@ export interface GalleryItem extends AssetBrief {
   id: string;
   tags: GalleryTag[];
   /** Explicit aspect ratio keeps CLS at zero. */
-  ratio: "3/4" | "1/1" | "4/5";
+  ratio: "3/4" | "1/1" | "4/5" | "6/7";
   /** Which branch it was shot in — useful for branch pages later. */
   branchSlug?: string;
 }
@@ -35,8 +35,16 @@ export const galleryTagLabels: Record<GalleryTag, string> = {
 };
 
 export const gallery: GalleryItem[] = [
-  { id: "g01", src: null, tags: ["fades"], ratio: "3/4", alt: "Blade fade with a sharp line-up", brief: "Blade Fade #1 — three-quarter rear, raking light on the blend" },
-  { id: "g02", src: null, tags: ["club-cut"], ratio: "4/5", alt: "The Club Cut, textured on top", brief: "Club Cut #1 — front three-quarter, soft key" },
+  // --- Supplied 2026-08-23. Real work, in Barber Club chairs. -------------
+  // Native ratio is 456x532 = 6/7. Shown at exactly that rather than forced
+  // into the 3/4 and 4/5 slots the briefs assumed, because at 456px wide there
+  // is no spare resolution to crop away — every pixel discarded is one the tile
+  // then has to upscale back. Alt text is written from the picture; the
+  // filenames on these are not reliable (see content/photography.ts).
+  { id: "g01", src: "/assets/lining-up-fade.avif", tags: ["fades", "kids"], ratio: "6/7", alt: "A young client having a fade clipped in at the back and sides", brief: "SUPPLIED — young client mid-fade" },
+  { id: "g02", src: "/assets/barber-and-client.avif", tags: ["club-cut"], ratio: "6/7", alt: "A barber preparing to start a cut, with the client waiting in the chair", brief: "SUPPLIED — barber and client at the chair" },
+  { id: "g13", src: "/assets/two-friends-cuttin-next-to-each-other.avif", tags: ["club-cut", "groups"], ratio: "6/7", alt: "Two clients being cut side by side in adjacent chairs", brief: "SUPPLIED — two chairs working at once" },
+  { id: "g16", src: "/assets/cool-kid-in-sunglasses.avif", tags: ["kids"], ratio: "6/7", alt: "A young client in sunglasses waiting in the barber chair", brief: "SUPPLIED — schoolboy cut, waiting his turn" },
   { id: "g03", src: null, tags: ["beards"], ratio: "1/1", alt: "Full beard shaped with a defined cheek line", brief: "Beard #1 — profile, backlit rim on the beard edge" },
   { id: "g04", src: null, tags: ["fades", "beards"], ratio: "3/4", alt: "Blade fade paired with a sculpted beard", brief: "Combo #1 — straight-on, symmetrical framing" },
   { id: "g05", src: null, tags: ["shaves"], ratio: "4/5", alt: "Hot-towel shave in progress", brief: "Shave #1 — steam, lather, razor mid-pass" },
@@ -47,9 +55,33 @@ export const gallery: GalleryItem[] = [
   { id: "g10", src: null, tags: ["groups"], ratio: "1/1", alt: "A groomsmen party mid-service", brief: "Groups #1 — wedding party, exclusive-use feel" },
   { id: "g11", src: null, tags: ["fades"], ratio: "4/5", alt: "Drop fade with a hard part", brief: "Fade #3 — hard part detail, top light" },
   { id: "g12", src: null, tags: ["club-cut"], ratio: "3/4", alt: "Textured crop with a natural finish", brief: "Club Cut #3 — wavy/curly texture" },
+  // Still outstanding — these two briefs used to sit on g01/g02 before real
+  // photographs took those slots. The shot list does not shrink just because
+  // some of it arrived.
+  { id: "g14", src: null, tags: ["fades"], ratio: "3/4", alt: "Blade fade with a sharp line-up", brief: "Blade Fade #1 — three-quarter rear, raking light on the blend" },
+  { id: "g15", src: null, tags: ["club-cut"], ratio: "4/5", alt: "The Club Cut, textured on top", brief: "Club Cut #1 — front three-quarter, soft key" },
 ];
 
-export const homeGallery = gallery.slice(0, 9);
+/**
+ * What the home page shows.
+ *
+ * Real photographs only — never a placeholder. The dashed "shot needed" frames
+ * are a production tool, and they belong on /gallery where the shot list is the
+ * point. Rendered on the conversion surface they were doing active harm: with
+ * four photographs among six empty boxes, the section that exists to prove this
+ * business can cut hair mostly proved it had not been photographed. Two thirds
+ * empty reads as a business with nothing to show, not as a site mid-build.
+ *
+ * Derived rather than hand-listed, so it maintains itself: every new `src` that
+ * lands in the array above appears here automatically, and nothing without one
+ * ever can.
+ *
+ * The fallback matters. Before ANY photography existed this page would
+ * otherwise have had no gallery at all, silently — so with nothing shot, it
+ * shows the briefs and the gap stays impossible to miss.
+ */
+const shot = gallery.filter((item) => Boolean(item.src));
+export const homeGallery = shot.length > 0 ? shot : gallery.slice(0, 9);
 
 /**
  * Hero video.

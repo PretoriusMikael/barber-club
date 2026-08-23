@@ -27,7 +27,6 @@ export function Groups({ compact = false }: { compact?: boolean }) {
       <BlobScene className="opacity-70" />
       <Container className="relative">
         <SectionHeading
-          eyebrow="Groups & groomsmen"
           title="Bring the whole wedding party."
           intro="Cuts, hot-towel shaves, head and neck massages, a drink in hand and the place to yourselves. Booked as one."
         />

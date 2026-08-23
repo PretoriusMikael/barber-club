@@ -32,7 +32,6 @@ export function Branches({ limit }: { limit?: number }) {
       <Container>
         <div className="flex flex-wrap items-end justify-between gap-6">
           <SectionHeading
-            eyebrow="Branches"
             title="Eleven chairs' worth of Winelands."
             intro="Paarl, Stellenbosch, Wellington, Malmesbury, Durbanville and Franschhoek. Find the one on your way home."
           />

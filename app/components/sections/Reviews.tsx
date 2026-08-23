@@ -25,7 +25,6 @@ export function Reviews() {
         {live ? (
           <>
             <SectionHeading
-              eyebrow="What people say"
               title={`${site.rating.count} reviews. ${site.rating.value} stars. Zero stock photos.`}
             />
             <div className="mt-14 grid gap-5 md:grid-cols-3">

@@ -37,9 +37,13 @@ export function Services() {
     <Section id="services">
       <Container>
         <div className="flex flex-wrap items-end justify-between gap-6">
+          {/* Was also "Two ways to sit down." — the exact same sentence the
+              TierScroll section three screens below uses as ITS headline. Two
+              identical h2s on one page is not a motif, it is a page that has
+              lost track of what each section is for. This one owns the menu and
+              the prices; that one owns the choice between the tiers. */}
           <SectionHeading
-            eyebrow="The menu"
-            title="Two ways to sit down."
+            title="Every cut, and what it costs."
             intro="Classic is walk-in and sharply priced. Premier is by appointment, with the time and the finish to match. Same barbers, same standard."
           />
           <ButtonLink href="/services" variant="ghost" size="sm" className="hidden md:inline-flex">

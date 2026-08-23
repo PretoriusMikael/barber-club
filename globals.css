@@ -20,7 +20,14 @@
      or the eye stops treating it as "the button that books". */
   --color-brass: #c8a35a;
   --color-brass-hi: #e2c184;
-  --color-brass-dim: #8e733e;
+  /* Was #8e733e. That measured 4.09:1 on ink-raised and 4.38:1 on ink — under
+     AA — and it is the colour of every small uppercase label on the site, so it
+     failed in 33 places at once. #a2854a holds the same muted-brass role at
+     5.25:1 / 5.61:1. Verified with a contrast sweep over the live DOM, not by
+     eye: dark-on-dark brass is exactly the case where eyes lie. */
+  --color-brass-dim: #a2854a;
+  /* The 1px rule version, free to stay dark because it carries no text. */
+  --color-brass-rule: #6d5830;
 
   /* Secondary accent — barber-pole red. Used for the 3D scene + rare emphasis. */
   --color-pole: #b4302b;
@@ -29,8 +36,12 @@
   --font-display: var(--font-bebas), "Impact", "Haettenschweiler", sans-serif;
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 
-  /* --- Motion ------------------------------------------------------------- */
+  /* --- Motion -------------------------------------------------------------
+     One easing vocabulary, used by CSS and by the JS motion layer alike (see
+     lib/motion.ts, which exports the same curves as coefficient arrays). Two
+     curves, not five: `expo` for arrivals, `swift` for anything leaving. */
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-swift: cubic-bezier(0.4, 0, 0.2, 1);
 
   /* --- shadcn-registry bridge ---------------------------------------------
      Watermelon UI ships shadcn-registry components, which reference shadcn's
@@ -80,6 +91,15 @@
     scroll-behavior: smooth;
     /* Sticky header offset for #anchor jumps. */
     scroll-padding-top: 5rem;
+
+    /* --- Surfaces the browser draws, not us ------------------------------
+       The scrollbar, the caret and the selection are part of the page whether
+       or not anyone designs them. Left alone on a near-black site they ship as
+       a bright system-grey strip down the right edge — the single loudest
+       undesigned element on the page. Firefox takes the two-keyword form; the
+       WebKit pseudo-elements below cover Chrome and Safari. */
+    scrollbar-color: var(--color-line) var(--color-ink-sunken);
+    scrollbar-width: thin;
   }
 
   body {
@@ -88,11 +108,41 @@
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+    /* The caret is brand-coloured everywhere a field exists (the booking page,
+       the branch filter), because a default blue-white bar on brass is jarring. */
+    caret-color: var(--color-brass);
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--color-ink-sunken);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #2e2e35;
+    border: 2px solid var(--color-ink-sunken);
+    border-radius: 999px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-brass-dim);
   }
 
   ::selection {
     background-color: var(--color-brass);
     color: var(--color-ink);
+  }
+
+  /* Prices sit in right-aligned columns on the menus, and proportional digits
+     make the rand amounts shuffle sideways row to row. Lining figures fix the
+     column without touching the type face. */
+  .tnum {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
   }
 
   /* Visible focus ring — the booking flow must be keyboard-completable. */
@@ -128,6 +178,9 @@
     opacity: 1 !important;
     transform: none !important;
     filter: none !important;
+    /* The `mask` reveal variant animates clip-path, so the no-JS safety net has
+       to release that too or a headline stays clipped to nothing. */
+    clip-path: none !important;
   }
 
   /* TextEffect splits on whitespace and renders every segment — including the
@@ -151,33 +204,22 @@
     height: 1px;
   }
 
-  /* Film grain over the hero video. Pure CSS — no extra image request. */
+  /* Film grain over the hero video. Pure CSS — no extra image request.
+
+     This used to run `grain-shift 700ms steps(4) infinite`. A full-viewport
+     pseudo-element repainting four times a second, forever, for the entire
+     visit — including long after the hero has scrolled away and while the tab
+     sits in the background — is a real battery cost for an effect nobody can
+     consciously see moving. The texture is what sells the film look; the
+     jitter was never doing the work. Static now, and cheaper than it looks:
+     one composited layer, painted once. */
   .grain::after {
     content: "";
     position: absolute;
-    inset: -100%;
+    inset: 0;
     pointer-events: none;
-    opacity: 0.11;
+    opacity: 0.085;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
-    animation: grain-shift 700ms steps(4) infinite;
-  }
-}
-
-@keyframes grain-shift {
-  0% {
-    transform: translate(0, 0);
-  }
-  25% {
-    transform: translate(-3%, 2%);
-  }
-  50% {
-    transform: translate(2%, -3%);
-  }
-  75% {
-    transform: translate(-2%, -2%);
-  }
-  100% {
-    transform: translate(0, 0);
   }
 }
 
@@ -203,9 +245,6 @@
     opacity: 1 !important;
     transform: none !important;
     filter: none !important;
-  }
-
-  .grain::after {
-    animation: none;
+    clip-path: none !important;
   }
 }

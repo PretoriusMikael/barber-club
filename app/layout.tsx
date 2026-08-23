@@ -62,7 +62,18 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en-ZA" className={`no-js ${bebas.variable} ${inter.variable}`}>
+    // suppressHydrationWarning is scoped to <html> and earns its place: the
+    // inline script below deliberately strips `no-js` from this element BEFORE
+    // React hydrates, so the server markup and the live DOM are always meant to
+    // differ here by exactly one class. React 19 reports that as an attribute
+    // mismatch on every single page load, which buries real hydration bugs in
+    // noise. It suppresses the warning for this element's attributes only —
+    // children are still checked normally.
+    <html
+      lang="en-ZA"
+      className={`no-js ${bebas.variable} ${inter.variable}`}
+      suppressHydrationWarning
+    >
       <head>
         {/* Drops `.no-js` before first paint so scroll-reveal can take over.
             With JS disabled the class stays and globals.css keeps every

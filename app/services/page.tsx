@@ -36,7 +36,6 @@ export default function ServicesPage() {
       <Section className="pt-32 md:pt-40">
         <Container>
           <SectionHeading
-            eyebrow="Services"
             title="Every service, every price. No surprises at the counter."
             intro="Classic is walk-in and sharply priced. Premier is by appointment, with the time and the finish to match. Switch between them below."
           />

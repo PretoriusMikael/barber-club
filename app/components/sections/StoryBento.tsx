@@ -5,8 +5,9 @@ import Link from "next/link";
 import { Coffee, Wifi, Music, DoorOpen, Instagram, MapPin, ArrowUpRight } from "lucide-react";
 import { site } from "@/content/site";
 import { branches } from "@/content/branches";
-import { Section, Container, Eyebrow } from "@/components/ui/Section";
+import { Section, Container } from "@/components/ui/Section";
 import { Reveal, RevealItem } from "@/components/ui/Reveal";
+import { CountUp } from "@/components/ui/CountUp";
 import { LowPolyGrid } from "@/components/backgrounds/Haikei";
 import { track } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
@@ -66,8 +67,6 @@ export function StoryBento() {
     <Section id="story" tone="sunken" className="overflow-hidden">
       <Container>
         <div ref={sectionRef}>
-          <Eyebrow>Our story</Eyebrow>
-
           <Reveal
             staggerChildren
             stagger={70}
@@ -112,7 +111,7 @@ export function StoryBento() {
                 </span>
                 <span>
                   <span className="block font-display text-[clamp(3rem,7vw,5rem)] leading-none text-brass">
-                    {branches.length}
+                    <CountUp value={branches.length} />
                   </span>
                   <span className="mt-2 block text-sm leading-snug text-bone-dim">
                     branches across the Cape Winelands
