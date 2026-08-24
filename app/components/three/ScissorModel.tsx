@@ -68,8 +68,41 @@ const BLADE_BEVEL = 0.024;
 const EDGE_DEPTH = 0.168;
 const HALF_OFFSET = 0.09;
 
-function useScissorGeometry() {
-  return useMemo(() => {
+/**
+ * Built ONCE per page and shared by every mesh that needs it.
+ *
+ * This was a `useMemo` inside a hook — and `useMemo` memoises per component
+ * INSTANCE, not per module. The hook was called from `Scissor` and from
+ * `ScissorHalf`, and `ScissorHalf` renders twice, so the entire set was
+ * constructed three times over and uploaded to the GPU three times over: two
+ * bevelled ExtrudeGeometries at 64 curve segments, a 64x20 tube, two toruses
+ * and three primitives, tripled, on the main thread, during the hero's entrance
+ * animation. It showed up in a CPU profile as `fromBufferAttribute` and was
+ * part of why the headline stuttered.
+ *
+ * A module-level singleton is correct here because the geometry depends on
+ * nothing: no props, no viewport, no quality tier. It is the same object every
+ * time. Built lazily on first use rather than at import so that merely loading
+ * the chunk costs nothing, and deliberately never disposed — the scene unmounts
+ * and remounts as the hero scrolls in and out of view, and rebuilding this on
+ * every remount is exactly the cost we are removing.
+ */
+let geometryCache: ScissorGeometry | null = null;
+
+type ScissorGeometry = {
+  blade: THREE.ExtrudeGeometry;
+  edge: THREE.ExtrudeGeometry;
+  shank: THREE.TubeGeometry;
+  ring: THREE.TorusGeometry;
+  tang: THREE.TorusGeometry;
+  bezel: THREE.CylinderGeometry;
+  screw: THREE.CylinderGeometry;
+  slot: THREE.BoxGeometry;
+};
+
+function getScissorGeometry(): ScissorGeometry {
+  if (geometryCache) return geometryCache;
+  geometryCache = (() => {
     /* --- Blade -----------------------------------------------------------
      * Runs from the pivot (x~0) to the tip (x~3.6). The spine is the upper
      * curve; the cutting edge below stays much straighter, because a blade that
@@ -150,7 +183,8 @@ function useScissorGeometry() {
     const slot = new THREE.BoxGeometry(0.16, 0.024, 0.02);
 
     return { blade, edge, shank, ring, tang, bezel, screw, slot };
-  }, []);
+  })();
+  return geometryCache;
 }
 
 interface Materials {
@@ -167,7 +201,7 @@ const ScissorHalf = forwardRef<
   THREE.Group,
   { materials: Materials; withTang?: boolean }
 >(function ScissorHalf({ materials, withTang }, ref) {
-  const geo = useScissorGeometry();
+  const geo = getScissorGeometry();
 
   return (
     <group ref={ref}>
@@ -197,7 +231,7 @@ export const Scissor = forwardRef<
     quality?: "high" | "low" | "still";
   }
 >(function Scissor({ halfA, halfB, quality = "high" }, ref) {
-  const geo = useScissorGeometry();
+  const geo = getScissorGeometry();
 
   const materials = useMemo<Materials>(() => {
     const rich = quality !== "low";
