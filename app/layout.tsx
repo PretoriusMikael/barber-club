@@ -6,6 +6,7 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { StickyCta } from "@/components/layout/StickyCta";
 import { JsonLd, organizationSchema } from "@/lib/schema";
+import { Analytics } from "@vercel/analytics/next";
 
 const bebas = Bebas_Neue({
   weight: "400",
@@ -99,6 +100,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <main id="main">{children}</main>
         <Footer />
         <StickyCta />
+        <Analytics />
       </body>
     </html>
   );
