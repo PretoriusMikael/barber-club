@@ -28,7 +28,7 @@ export function Faq() {
   return (
     <Section tone="raised">
       <Container>
-        <SectionHeading eyebrow="Questions" title="Things people ask before booking." />
+        <SectionHeading title="Things people ask before booking." />
 
         <Accordion
           type="single"

@@ -110,15 +110,23 @@ static — scrolling out of frame with the rest of the hero. It is the only 3D o
 
 `app/components/three/`:
 
-- `ScissorModel.tsx` — fully procedural geometry. Blades are bevelled `ExtrudeGeometry` from a
-  2D profile (the bevel is what makes it read as ground steel rather than a flat cutout),
-  shanks are `TubeGeometry` along a Catmull-Rom curve, brass rings are tori placed on the
-  shank's exit tangent so they join flush. No glTF, no Draco, no textures, nothing to commission.
+- `ScissorModel.tsx` — fully procedural geometry and `MeshPhysicalMaterial` with anisotropy.
+  Blades are bevelled `ExtrudeGeometry` from a 2D profile; a separate near-mirror ribbon along
+  the cutting edge is the honed bevel, and it is what makes the blade read as sharp rather than
+  as a flat metal leaf. Shanks are `TubeGeometry` along a Catmull-Rom curve, brass rings are
+  tori placed on the shank's exit tangent, plus a finger tang and a slotted screw. No glTF, no
+  Draco, no downloaded textures, nothing to commission.
+- `scissorTextures.ts` — canvas-generated brushed-metal roughness and normal maps, from a
+  seeded PRNG so they are deterministic. Constant roughness gives a featureless mirror;
+  directional grind marks are most of what tells the eye "metal".
+- `scissorEnvironment.ts` — a purpose-built studio lightbox (two tall strip softboxes, a broad
+  key, a brass kicker, a floor bounce) PMREM'd once at startup. This is the single biggest
+  factor in how the model reads: at `metalness: 1` a surface is a mirror, so the environment
+  does nearly all the work and direct lights barely register. three's stock `RoomEnvironment`
+  is a generic grey room, and metal lit by it looks like generic grey metal.
 - `scissorPose.ts` — the single rest pose plus the cut constants. Tune position, scale and cut
   timing here.
-- `ScissorScene.tsx` — lighting, the cut animation, and a procedural `RoomEnvironment` PMREM.
-  Polished metal needs something to reflect: at `metalness: 1` with no environment it renders
-  **black**.
+- `ScissorScene.tsx` — lighting and the cut animation.
 - `HeroScissor.tsx` — the mount gate.
 
 **It renders on demand, not continuously.** `frameloop` is `"demand"` except for the ~0.8s the
@@ -219,6 +227,36 @@ stage) · `BlobScene` (group packages). All inline, all decorative (`aria-hidden
 requests, and all geometry static — the low-poly mesh uses a fixed jitter table rather than
 `Math.random()`, which would differ between server and client render.
 
+### Two Framer-style sections
+
+**`StoryBento.tsx`** — the Our Story section as a bento grid. It replaced a two-column text
+block sitting beside a decorative barber pole, which was the weakest-looking part of the page:
+prose on the left, dead space on the right. Six tiles, every one a real fact from
+barberclub.co.za — trading since December 2017, eleven branches, coffee/music/Wi-Fi,
+walk-in friendly, Instagram. Three of them are links, so the grid does navigational work too.
+Square corners, because the rest of the site has none and softening only this section would
+read as a different design system.
+
+**`TierScroll.tsx`** — Classic vs Premier as a pinned scroll comparison. The Services grid
+answers *what does it cost*; it cannot answer *which one is for me*, because the real
+difference is walk-in versus appointment and time in the chair. The live site never explains
+that anywhere.
+
+Two decisions worth keeping:
+
+- **The desktop/mobile split is CSS, not JavaScript.** Pinning needs a viewport tall enough to
+  hold a panel, which a phone does not have. A JS media query was tried and rejected: the
+  server cannot know the viewport, so the page would render one layout and swap on hydration —
+  a large, avoidable layout shift. Both layouts are in the markup and CSS picks one.
+  `display: none` removes the hidden branch from the accessibility tree as well, so screen
+  readers never hear the content twice.
+- **The price range is computed over the showcased services, not the whole menu.** Over the
+  full menu Classic would read "R70 to R290" — R70 being a nose wax. True, and misleading as a
+  headline for a haircut.
+
+Under `prefers-reduced-motion` the pinned branch is not rendered at all: a section that only
+advances when you scroll is a trap for anyone who asked for less movement.
+
 ---
 
 ## Measured
@@ -227,7 +265,7 @@ Production build (`next build` + `next start`), gzipped:
 
 | Route | Initial JS | |
 |---|---|---|
-| `/` | **256 KB** | ⚠️ over |
+| `/` | **261 KB** | ⚠️ over |
 | `/services` | **240 KB** | ⚠️ over |
 | `/gallery` | **236 KB** | ⚠️ over |
 | `/groups` | **228 KB** | ⚠️ over |

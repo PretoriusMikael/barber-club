@@ -27,7 +27,6 @@ export default function GalleryPage() {
       <Section className="pt-32 md:pt-40">
         <Container>
           <SectionHeading
-            eyebrow="The work"
             title="Every cut here happened in a Barber Club chair."
             intro="No stock photography, no borrowed portfolios. Filter by what you are actually after."
           />

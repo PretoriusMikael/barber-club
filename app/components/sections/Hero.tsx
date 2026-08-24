@@ -1,10 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
+import { useRef } from "react";
+import { motion, useScroll, useTransform } from "motion/react";
 import { ArrowDown, Star, MapPin } from "lucide-react";
 import { site } from "@/content/site";
 import { branches } from "@/content/branches";
 import { heroVideo } from "@/content/gallery";
+import { heroPhoto } from "@/content/photography";
 import { lowestPrice } from "@/content/services";
 import { formatZar } from "@/lib/utils";
 import { BookButton, ButtonLink } from "@/components/ui/Button";
@@ -22,17 +26,52 @@ import { LayeredWaves } from "@/components/backgrounds/Haikei";
  * WELCOME TO THE CLUB." is already good, already in market, and already carries
  * recognition. Replacing working brand copy for the sake of a rewrite is vandalism.
  *
- * Performance contract: the LCP element is the POSTER IMAGE, never the video.
+ * Performance contract: the LCP element is the STILL IMAGE, never the video.
  * The video is decorative, muted, has no audio track, and is allowed to fail.
  * Explicitly NOT here: a booking iframe — it would wreck LCP and INP.
+ *
+ * The on-page "hero video needed" placeholder panel is gone: there is a real
+ * photograph here now, and a production note printed over it would be worse
+ * than the gap it was flagging. The 8-second loop is still outstanding and its
+ * brief still lives in content/gallery.ts — when the file lands, set
+ * `heroVideo.src` and the <video> branch below takes over with this photograph
+ * as its poster.
  */
 export function Hero() {
   const hasVideo = Boolean(heroVideo.src);
-  const hasPoster = Boolean(heroVideo.poster);
+  const section = useRef<HTMLElement>(null);
+
+  /* --- Scroll handoff -----------------------------------------------------
+   * Three layers leaving the screen at three rates: the backdrop drifts down
+   * (slowest, so it reads as furthest away), the copy lifts and fades, and the
+   * scissor — handled in HeroScissor — lifts fastest. The hero stops being a
+   * flat card being pushed upward and starts behaving like a scene the page is
+   * travelling out of.
+   *
+   * Everything here is transform and opacity, so it composites off the main
+   * thread. `useScroll` reads layout once per frame rather than per event.
+   * -------------------------------------------------------------------- */
+  const { scrollYProgress } = useScroll({
+    target: section,
+    offset: ["start start", "end start"],
+  });
+  const backdropY = useTransform(scrollYProgress, [0, 1], ["0%", "16%"]);
+  const backdropScale = useTransform(scrollYProgress, [0, 1], [1, 1.08]);
+  const copyY = useTransform(scrollYProgress, [0, 1], [0, -64]);
+
+  // Gone before the section boundary, so the copy never crosses the seam into
+  // the trust bar underneath it.
+  const copyOpacity = useTransform(scrollYProgress, [0, 0.62], [1, 0]);
 
   return (
-    <section className="relative flex min-h-[100svh] items-end overflow-hidden bg-ink-sunken pb-16 pt-28 md:pb-24">
-      <div className="absolute inset-0">
+    <section
+      ref={section}
+      className="relative flex min-h-[100svh] items-end overflow-hidden bg-ink-sunken pb-16 pt-28 md:pb-24"
+    >
+      <motion.div
+        className="absolute inset-0"
+        style={{ y: backdropY, scale: backdropScale }}
+      >
         {hasVideo ? (
           <video
             className="h-full w-full object-cover"
@@ -46,23 +85,40 @@ export function Hero() {
           >
             <source src={heroVideo.src} type="video/mp4" />
           </video>
-        ) : hasPoster ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={heroVideo.poster}
-            alt=""
-            className="h-full w-full object-cover"
-            fetchPriority="high"
-          />
         ) : (
-          <HeroPlaceholder />
+          /* The LCP element. `priority` emits a preload so it starts fetching
+             in the document head rather than waiting for React, and `sizes` is
+             100vw because it is a full-bleed backdrop at every width.
+
+             `unoptimized` is deliberate and worth the sentence: the source is
+             already AVIF at aggressive compression (1904×822 in 28 KB). Putting
+             that through the image optimiser means decoding and re-encoding
+             lossy-to-lossy, which on a file this compressed shows up as blocking
+             in the window behind the barber — and AVIF encoding is among the
+             slowest things a build can do, for a saving measured against 28 KB.
+             Delete this prop the moment a raw shoot master replaces the file. */
+          <Image
+            src={heroPhoto.src}
+            alt=""
+            aria-hidden
+            fill
+            priority
+            unoptimized
+            sizes="100vw"
+            style={{ objectPosition: heroPhoto.focus }}
+            className="object-cover"
+          />
         )}
 
         {/* Legibility gradient. Dark barber aesthetics fail contrast checks
             constantly — this is what keeps the headline at AA. */}
         <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/70 to-ink/30" />
+        {/* Second, horizontal pass. The copy column is on the left and the 3D
+            object is on the right; without this the headline's left edge sits
+            on whatever the video happens to be doing there. */}
+        <div className="absolute inset-0 bg-gradient-to-r from-ink/80 via-ink/25 to-transparent" />
         <div className="grain absolute inset-0 overflow-hidden" aria-hidden />
-      </div>
+      </motion.div>
 
       {/* Haikei-family layered waves, softening the seam into the trust bar. */}
       <LayeredWaves className="absolute inset-x-0 bottom-0 z-[6] h-24 md:h-32" />
@@ -71,10 +127,23 @@ export function Hero() {
           scrolls away with it rather than following the page. */}
       <HeroScissor />
 
-      <div className="relative z-10 mx-auto w-full max-w-6xl px-5 sm:px-8">
-        <p className="mb-5 flex items-center gap-3 text-xs uppercase tracking-[0.28em] text-brass">
-          <span aria-hidden className="h-px w-8 bg-brass" />
-          {branches.length} branches · Cape Winelands · since {site.established}
+      <motion.div
+        className="relative z-10 mx-auto w-full max-w-6xl px-5 sm:px-8"
+        style={{ y: copyY, opacity: copyOpacity }}
+      >
+        {/* Not a kicker: this is the three facts that answer "who is this and
+            should I care" before the headline gets a chance to be poetic.
+            Wrapping is explicit so it breaks after "Winelands" on a phone
+            rather than orphaning "since" on its own line. */}
+        <p className="mb-5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs uppercase tracking-[0.28em] text-brass">
+          <span aria-hidden className="h-px w-8 shrink-0 bg-brass" />
+          <span className="whitespace-nowrap after:ml-3 after:text-brass/40 after:content-['·']">
+            {branches.length} branches
+          </span>
+          <span className="whitespace-nowrap after:ml-3 after:text-brass/40 after:content-['·']">
+            Cape Winelands
+          </span>
+          <span className="whitespace-nowrap">since {site.established}</span>
         </p>
 
         <HeroHeadline />
@@ -114,27 +183,16 @@ export function Hero() {
 
           <Link
             href="/#story"
-            className="flex items-center gap-1.5 text-bone-faint transition-colors hover:text-bone"
+            className="group flex items-center gap-1.5 text-bone-faint transition-colors hover:text-bone"
           >
             Our story
-            <ArrowDown aria-hidden className="h-3.5 w-3.5" />
+            <ArrowDown
+              aria-hidden
+              className="h-3.5 w-3.5 transition-transform duration-300 ease-[var(--ease-out-expo)] group-hover:translate-y-0.5"
+            />
           </Link>
         </div>
-      </div>
+      </motion.div>
     </section>
-  );
-}
-
-/** Shown until the hero shoot lands. Carries the brief so it cannot be forgotten. */
-function HeroPlaceholder() {
-  return (
-    <div className="flex h-full w-full items-center justify-center bg-[radial-gradient(ellipse_at_50%_120%,#1d1d22_0%,#060607_70%)]">
-      <p className="max-w-md px-8 text-center text-xs leading-relaxed text-bone-faint">
-        <span className="mb-2 block uppercase tracking-[0.25em] text-brass-dim">
-          Hero video + poster needed
-        </span>
-        {heroVideo.brief}
-      </p>
-    </div>
   );
 }

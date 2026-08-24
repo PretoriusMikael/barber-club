@@ -31,23 +31,50 @@ interface Light {
   intensity: number;
 }
 
+/* --- Why this rig was rebuilt ------------------------------------------------
+ * The first version made the blades read as flat cream paper, and the cause was
+ * the key light: a 9×6 slab at intensity 13 in a warm #fff3e0, sitting close
+ * enough to cover most of the hemisphere the blade faces. A mirror shows you
+ * its surroundings, so a blade facing one enormous even source reflects one
+ * enormous even source — a single uniform wash, the same value corner to
+ * corner, with the warm cast turning cool #c7cad2 steel into beige card.
+ *
+ * Chrome does not need more light. It needs more CONTRAST in what it can see:
+ * bright sources with dark gaps between them, so the reflection has structure
+ * to travel across as the object turns. The rebuild halves the key's area,
+ * drops its intensity, and lets the dark room take back the space — the black
+ * between the sources is doing as much work as the sources.
+ * -------------------------------------------------------------------------- */
 const LIGHTS: Light[] = [
-  // Broad warm key, high and front-right. Fills the flat of the blade.
+  // Key. Was 9×6 at 13; now a third of the area and cooler, so it reads as a
+  // softbox with an edge rather than as ambient daylight.
   {
-    size: [9, 6],
-    position: [5, 6.5, 5],
-    rotation: [-0.75, 0.6, 0],
-    color: '#fff3e0',
-    intensity: 13,
+    size: [5, 3.4],
+    position: [4.6, 5.6, 5.2],
+    rotation: [-0.72, 0.58, 0],
+    color: '#fff1dd',
+    intensity: 9,
   },
-  // Tall cool strip, left. This is the one that draws the long highlight down
-  // the length of the blade as it rotates — the signature "polished steel" cue.
+  // Tall cool strip, left, now the dominant source. This is the one that draws
+  // the long unbroken highlight down the length of the blade as it turns — the
+  // signature polished-steel cue — and it is what keeps the steel cool-grey
+  // instead of letting the warm key tint the whole object.
   {
-    size: [1.1, 15],
-    position: [-7.5, 1.5, 3.5],
+    size: [1.0, 15],
+    position: [-7.2, 1.5, 3.8],
     rotation: [0, 1.05, 0],
-    color: '#e2ecff',
-    intensity: 10,
+    color: '#dbe7ff',
+    intensity: 15,
+  },
+  // Second cool strip, high and slightly right, narrower still. Two strips at
+  // different angles mean the blade always has one travelling across it at any
+  // rotation the pointer can reach.
+  {
+    size: [0.7, 11],
+    position: [3.4, 3.2, 6.2],
+    rotation: [0, -0.25, 0.55],
+    color: '#eaf1ff',
+    intensity: 9,
   },
   // Narrow warm strip, right and behind. Separates the blade edge from the
   // background when the scissor turns away from the key.
@@ -56,15 +83,28 @@ const LIGHTS: Light[] = [
     position: [6.5, 1, -4.5],
     rotation: [0, -0.9, 0],
     color: '#ffdfb5',
-    intensity: 8,
+    intensity: 7,
   },
-  // Brass kicker, low front-left. Warms the finger rings from underneath.
+  // Brass kicker, low front-left. Warms the finger rings from underneath and
+  // ties the object to the one accent colour the brand actually owns.
   {
-    size: [4, 4],
+    size: [3.4, 3.4],
     position: [-3.5, -4, 5],
     rotation: [0.9, -0.3, 0],
     color: '#c8a35a',
-    intensity: 4.5,
+    intensity: 4,
+  },
+  // Barber-pole red, low and far right, at the threshold of visible. The
+  // palette reserves `--color-pole` for the 3D scene and then the scene never
+  // used it. A single cool object in a warm brass page has nothing tying it to
+  // the brand; one dull red edge along the underside of the blades does it
+  // without anyone consciously noticing a red light.
+  {
+    size: [0.9, 7],
+    position: [5.4, -3.2, 1.6],
+    rotation: [0.35, -0.75, 0.2],
+    color: '#b4302b',
+    intensity: 5,
   },
   // Floor bounce. Stops the underside going pure black, which is what makes
   // chrome look like it was cut out of the page.
@@ -72,8 +112,8 @@ const LIGHTS: Light[] = [
     size: [16, 10],
     position: [0, -7, 0],
     rotation: [-Math.PI / 2, 0, 0],
-    color: '#3a3a46',
-    intensity: 2,
+    color: '#33333d',
+    intensity: 1.8,
   },
 ];
 

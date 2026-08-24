@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { site, nav } from "@/content/site";
 import { branches } from "@/content/branches";
 import { BookButton } from "@/components/ui/Button";
+import { ScrollProgress } from "@/components/layout/ScrollProgress";
 
 /**
  * Transparent over the hero, solid once scrolled. The BOOK button is present at
@@ -71,6 +72,10 @@ export function Header() {
           : "border-b border-transparent bg-transparent"
       )}
     >
+      {/* Only once the header has a solid background to sit on — over the hero
+          it would be a brass line floating across the video. */}
+      {scrolled ? <ScrollProgress /> : null}
+
       <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-5 sm:px-8 md:h-20">
         <Link
           href="/"

@@ -4,7 +4,7 @@ import { useReducedMotion } from 'motion/react';
 import { TextEffect } from '@/components/motion-primitives/text-effect';
 
 /**
- * The hero headline, wrapped to fix three real defects in a bare <TextEffect>.
+ * The hero headline, wrapped to fix four real defects in a bare <TextEffect>.
  * This is the largest text on the site and usually its LCP element, so it is
  * worth hardening rather than using the primitive raw.
  *
@@ -26,10 +26,20 @@ import { TextEffect } from '@/components/motion-primitives/text-effect';
  *
  * 3. REDUCED MOTION IGNORED. TextEffect animates regardless of the OS setting.
  *
+ * 4. HYDRATION. The reduced-motion path used to return a completely different
+ *    tree — two plain spans instead of TextEffect's per-word markup. The server
+ *    has no way to read a motion preference, so it always rendered the animated
+ *    branch, and every reduced-motion visitor hit a text mismatch on the site's
+ *    biggest element and had the whole hero regenerated on the client. Swapping
+ *    the variant SET instead of the tree keeps the markup identical; only the
+ *    transitions differ, and transitions exist only on the client.
+ *
  * The second line's delay was also cut from 0.5s to 0.16s. Half a second of
  * empty space under a finished first line reads as a broken page, and delaying
  * the LCP element by that long is a measurable cost for no design gain.
  */
+
+const EASE = [0.16, 1, 0.3, 1] as [number, number, number, number];
 
 const WORD = {
   container: {
@@ -42,8 +52,29 @@ const WORD = {
     visible: {
       opacity: 1,
       filter: 'blur(0px)',
-      transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] },
+      transition: { duration: 0.5, ease: EASE },
     },
+  },
+};
+
+/**
+ * Reduced motion. IDENTICAL hidden states to WORD, zero-length transitions.
+ *
+ * The `hidden` variants must match byte for byte, and that is the whole trick.
+ * Motion writes the hidden state as an inline style during SSR, and the server
+ * cannot know the visitor's motion preference — so if the two variant sets
+ * disagreed about the starting style, every reduced-motion visitor would get a
+ * hydration mismatch on the largest element on the page. Only the transitions
+ * differ, and transitions exist purely on the client.
+ */
+const WORD_INSTANT = {
+  container: {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { staggerChildren: 0, duration: 0 } },
+  },
+  item: {
+    hidden: { opacity: 0, filter: 'blur(10px)' },
+    visible: { opacity: 1, filter: 'blur(0px)', transition: { duration: 0 } },
   },
 };
 
@@ -51,26 +82,18 @@ const CLASSES = 'max-w-4xl text-[clamp(2.75rem,9.5vw,7rem)] leading-[0.86] track
 
 export function HeroHeadline() {
   const reduced = useReducedMotion();
-
-  if (reduced) {
-    return (
-      <h1 className={CLASSES}>
-        <span className="block">More than a cut.</span>
-        <span className="block text-brass">Welcome to the Club.</span>
-      </h1>
-    );
-  }
+  const variants = reduced ? WORD_INSTANT : WORD;
 
   return (
     <h1 className={CLASSES} data-reveal data-text-effect="inline">
-      <TextEffect as="span" per="word" variants={WORD} delay={0} className="block">
+      <TextEffect as="span" per="word" variants={variants} delay={0} className="block">
         More than a cut.
       </TextEffect>
       <TextEffect
         as="span"
         per="word"
-        variants={WORD}
-        delay={0.16}
+        variants={variants}
+        delay={reduced ? 0 : 0.16}
         className="block text-brass"
       >
         Welcome to the Club.

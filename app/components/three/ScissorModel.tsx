@@ -2,7 +2,7 @@
 
 import { useMemo, forwardRef } from 'react';
 import * as THREE from 'three';
-import { getScissorMaps } from './scissorTextures';
+import { getScissorMaps, type ScissorMaps } from './scissorTextures';
 
 /**
  * A hair scissor, built entirely from procedural geometry and procedural maps.
@@ -31,6 +31,30 @@ import { getScissorMaps } from './scissorTextures';
  * and they can never desynchronise.
  */
 
+/* --- DO NOT SET `anisotropy` ON THESE MATERIALS ------------------------------
+ * It silently disables every normal map on the model.
+ *
+ * `MeshPhysicalMaterial.anisotropy` needs a tangent frame. When the geometry
+ * carries no `tangent` attribute — and none of this geometry does, because
+ * ExtrudeGeometry, TubeGeometry and TorusGeometry do not generate one — three
+ * takes a different branch through the normal-mapping chunk to derive the frame
+ * for the anisotropy direction, and the tangent-space normal perturbation is
+ * lost along the way. No warning, no error: the maps just stop having any
+ * effect.
+ *
+ * This is not theoretical. The model shipped with `anisotropy: 0.7` on the
+ * steel and 0.3 on the brass, and the blades rendered as two flat cards — one
+ * cream, one blue — because a perfectly planar mirror with no working normal
+ * map samples the environment at exactly one point. Every attempt to fix it in
+ * the lighting rig failed, because the lighting was never the problem. Removing
+ * anisotropy brought the maps back and the blades went metallic in one step.
+ *
+ * If brushed-highlight stretching is ever wanted back, the price is computing
+ * real tangents (mergeVertices + computeTangents from BufferGeometryUtils) so
+ * `USE_TANGENT` is defined and both features can coexist. Until then the grind
+ * direction is carried by the roughness map, which costs nothing and works.
+ * -------------------------------------------------------------------------- */
+
 /* --- Thickness budget --------------------------------------------------------
  * blade  : depth 0.10 + 0.024 bevel per face  = 0.148  -> +/-0.074
  * edge   : depth 0.168, no bevel              = 0.168  -> +/-0.084 (0.010 proud)
@@ -49,10 +73,17 @@ function useScissorGeometry() {
     /* --- Blade -----------------------------------------------------------
      * Runs from the pivot (x~0) to the tip (x~3.6). The spine is the upper
      * curve; the cutting edge below stays much straighter, because a blade that
-     * curves on both sides looks like a leaf. */
+     * curves on both sides looks like a leaf.
+     *
+     * The spine was raised from 0.30 to 0.36 at the pivot and from 0.04 to 0.055
+     * at the tip. At the old proportions the blades rendered as two narrow
+     * spikes — a stiletto, not a pair of shears — because hair scissors carry
+     * far more width at the pivot than a general-purpose scissor does. Only the
+     * spine moved: the lower curve is the cutting edge, and the honed ribbon
+     * below is cut to match it to three decimal places. */
     const bladeShape = new THREE.Shape();
-    bladeShape.moveTo(0.04, 0.3);
-    bladeShape.quadraticCurveTo(1.8, 0.315, 3.6, 0.04);
+    bladeShape.moveTo(0.04, 0.36);
+    bladeShape.quadraticCurveTo(1.8, 0.35, 3.6, 0.055);
     bladeShape.lineTo(3.62, -0.005);
     bladeShape.quadraticCurveTo(1.75, -0.115, 0.04, -0.225);
     bladeShape.closePath();
@@ -91,16 +122,16 @@ function useScissorGeometry() {
       new THREE.Vector3(-1.72, -0.54, 0),
       new THREE.Vector3(-2.35, -0.93, 0),
     ]);
-    const shank = new THREE.TubeGeometry(shankCurve, 64, 0.1, 20, false);
+    const shank = new THREE.TubeGeometry(shankCurve, 64, 0.118, 20, false);
 
     /* --- Finger ring -------------------------------------------------------
      * Offset along the shank exit tangent by exactly the ring radius, so the
      * tube meets the torus flush instead of stabbing through it. */
     const endTangent = shankCurve.getTangentAt(1).normalize();
-    const RING_RADIUS = 0.4;
+    const RING_RADIUS = 0.47;
     const ringCx = -2.35 + endTangent.x * RING_RADIUS;
     const ringCy = -0.93 + endTangent.y * RING_RADIUS;
-    const ring = new THREE.TorusGeometry(RING_RADIUS, 0.085, 24, 72);
+    const ring = new THREE.TorusGeometry(RING_RADIUS, 0.1, 24, 72);
     ring.translate(ringCx, ringCy, 0);
 
     /* --- Finger tang (lower half only) ------------------------------------ */
@@ -123,6 +154,8 @@ function useScissorGeometry() {
 }
 
 interface Materials {
+  /** The blade faces. Same alloy as `steel`, but hollow-ground — see below. */
+  bladeSteel: THREE.MeshPhysicalMaterial;
   steel: THREE.MeshPhysicalMaterial;
   honed: THREE.MeshPhysicalMaterial;
   brass: THREE.MeshPhysicalMaterial;
@@ -138,7 +171,7 @@ const ScissorHalf = forwardRef<
 
   return (
     <group ref={ref}>
-      <mesh geometry={geo.blade} material={materials.steel} />
+      <mesh geometry={geo.blade} material={materials.bladeSteel} />
       <mesh geometry={geo.edge} material={materials.honed} />
       <mesh geometry={geo.shank} material={materials.steel} />
       <mesh geometry={geo.ring} material={materials.brass} />
@@ -154,40 +187,54 @@ export const Scissor = forwardRef<
     /** Refs to the two pivoting halves, driven by the scene cut animation. */
     halfA: React.RefObject<THREE.Group | null>;
     halfB: React.RefObject<THREE.Group | null>;
+    /**
+     * Shading budget. "low" drops the two most expensive things on the
+     * material — the clearcoat lobe and anisotropic filtering of the specular
+     * highlight — and the normal map with them. It costs roughly a third less
+     * per fragment and still reads as a lit metal object, which is the whole
+     * argument for having a low tier rather than showing nothing.
+     */
+    quality?: "high" | "low" | "still";
   }
->(function Scissor({ halfA, halfB }, ref) {
+>(function Scissor({ halfA, halfB, quality = "high" }, ref) {
   const geo = useScissorGeometry();
 
   const materials = useMemo<Materials>(() => {
-    const maps = getScissorMaps();
+    const rich = quality !== "low";
+    const maps: ScissorMaps = rich
+      ? getScissorMaps()
+      : { roughness: null, normal: null, bladeNormal: null };
 
-    // Steel is a cool grey, never white. Pure white metal reads as plastic.
+    // Steel is a cool grey, never white. Pure white metal reads as plastic —
+    // and this was reading as cream, which is worse. Darkening the base a step
+    // and pulling envMapIntensity back from 1.45 lets the environment's bright
+    // strips punch out of a mid-grey body instead of blowing the whole surface
+    // to a single flat value.
     const steel = new THREE.MeshPhysicalMaterial({
-      color: '#c7cad2',
+      color: '#b6bbc5',
       metalness: 1,
       // Multiplied by the roughness map green channel, so the effective range
-      // lands near 0.09-0.34: polished, but with visible grind direction.
-      roughness: 0.4,
+      // lands near 0.10-0.38: polished, but with visible grind direction.
+      roughness: 0.44,
       roughnessMap: maps.roughness,
       normalMap: maps.normal,
-      envMapIntensity: 1.45,
-      // Anisotropy stretches the highlight along the grind direction. This is
-      // the difference between "shiny grey" and "brushed steel".
-      anisotropy: 0.55,
-      anisotropyRotation: 0,
-      clearcoat: 0.35,
-      clearcoatRoughness: 0.14,
+      envMapIntensity: 1.15,
+      clearcoat: rich ? 0.3 : 0,
+      clearcoatRoughness: 0.16,
     });
-    steel.normalScale = new THREE.Vector2(0.32, 0.32);
+    steel.normalScale = new THREE.Vector2(0.45, 0.45);
 
     // The honed bevel: almost no roughness and no scratch maps. It is the one
     // near-mirror surface on the model, which is what makes it read as sharp.
     const honed = new THREE.MeshPhysicalMaterial({
-      color: '#dfe3ea',
+      color: '#e6eaf2',
       metalness: 1,
-      roughness: 0.045,
-      envMapIntensity: 1.7,
-      clearcoat: 0.6,
+      roughness: 0.04,
+      // Stays high while the steel comes down. The whole point of this ribbon
+      // is to be the brightest thing on the model — a blade looks sharp because
+      // its ground edge catches light the flat of the blade cannot.
+      envMapIntensity: 1.9,
+      clearcoat: rich ? 0.6 : 0,
       clearcoatRoughness: 0.04,
     });
 
@@ -199,8 +246,7 @@ export const Scissor = forwardRef<
       roughnessMap: maps.roughness,
       normalMap: maps.normal,
       envMapIntensity: 1.25,
-      anisotropy: 0.3,
-      clearcoat: 0.25,
+      clearcoat: rich ? 0.25 : 0,
       clearcoatRoughness: 0.2,
     });
     brass.normalScale = new THREE.Vector2(0.18, 0.18);
@@ -212,8 +258,20 @@ export const Scissor = forwardRef<
       roughness: 0.65,
     });
 
-    return { steel, honed, brass, dark };
-  }, []);
+    /* The blade face carries the hollow-ground cross-curve; the shank and
+     * rings do not, because they are round geometry already and adding a second
+     * curvature to a tube just makes it look dented. Same alloy, same grind,
+     * one different map — so the two still read as one object. */
+    const bladeSteel = steel.clone();
+    bladeSteel.normalMap = rich ? maps.bladeNormal : null;
+    bladeSteel.normalScale = new THREE.Vector2(1.35, 1.35);
+    // The flats are the darkest part of a real blade — they are mostly
+    // reflecting the dark room. Only the ground edge and the light strips are
+    // bright, and that ratio is what makes steel read as steel.
+    bladeSteel.envMapIntensity = 1.3;
+
+    return { bladeSteel, steel, honed, brass, dark };
+  }, [quality]);
 
   return (
     <group ref={ref}>

@@ -17,13 +17,14 @@ export function Gallery() {
     <Section id="gallery" tone="raised">
       <Container>
         <SectionHeading
-          eyebrow="The work"
           title="The work speaks. Scroll it."
           intro="Real cuts on real clients, done in Barber Club chairs across the Winelands. No stock photography, and no filters doing the heavy lifting."
         />
 
         <div className="mt-14">
-          <GalleryGrid items={homeGallery} />
+          {/* Equal cells: the supplied photographs all share one 6/7 ratio, so
+              there is nothing for masonry to balance. */}
+          <GalleryGrid items={homeGallery} layout="grid" />
         </div>
 
         <div className="mt-12 flex flex-col gap-3 sm:flex-row">

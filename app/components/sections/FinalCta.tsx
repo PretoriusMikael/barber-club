@@ -1,7 +1,9 @@
+import Image from "next/image";
 import { site, booking } from "@/content/site";
 import { branches } from "@/content/branches";
 import { Container } from "@/components/ui/Section";
 import { BlurryGradient } from "@/components/backgrounds/Haikei";
+import { shaveBand } from "@/content/photography";
 import { BookButton, ButtonLink } from "@/components/ui/Button";
 import { bookingReady } from "@/lib/booking";
 
@@ -18,11 +20,34 @@ import { bookingReady } from "@/lib/booking";
  */
 export function FinalCta() {
   return (
-    <section className="relative overflow-hidden border-y border-line bg-ink-sunken py-24 md:py-32">
-      {/* Haikei-family blurry gradient. Replaces a flat CSS radial — three
-          overlapping blurred ellipses read as depth rather than a vignette, and
-          it is still a single inline SVG with no network request. */}
-      <BlurryGradient />
+    <section className="relative isolate overflow-hidden border-y border-line bg-ink-sunken py-24 md:py-32">
+      {/* A real photograph, replacing the Haikei blurry-gradient SVG that stood
+          in while there was none. The blob was a decent answer to "this block
+          needs visual weight and we have no assets"; it is not a better answer
+          than a picture of the thing being sold. The gradient component stays in
+          the library for surfaces that still have no photography.
+
+          Scrim is heavier here than on PhotoBand because the copy is CENTRED and
+          therefore crosses the subject rather than sitting beside it — this
+          frame has to work as a texture, not as a photograph you read. */}
+      <Image
+        src={shaveBand.src}
+        alt=""
+        aria-hidden
+        fill
+        unoptimized
+        sizes="100vw"
+        style={{ objectPosition: shaveBand.focus }}
+        className="object-cover"
+      />
+      <div aria-hidden className="absolute inset-0 bg-ink/78" />
+      <div
+        aria-hidden
+        className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_50%,transparent_0%,var(--color-ink)_78%)]"
+      />
+      {/* Kept over the photograph at low strength: it is where the brass warmth
+          in this block comes from, and the picture alone is cool. */}
+      <BlurryGradient className="opacity-60" />
       <Container className="relative text-center">
         <h2 className="mx-auto max-w-3xl text-[clamp(2.5rem,8vw,5rem)] leading-[0.9]">
           The chair&rsquo;s ready

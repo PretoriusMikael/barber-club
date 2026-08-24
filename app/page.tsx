@@ -2,6 +2,7 @@ import { Hero } from "@/components/sections/Hero";
 import { TrustBar } from "@/components/sections/TrustBar";
 import { Services } from "@/components/sections/Services";
 import { TierScroll } from "@/components/sections/TierScroll";
+import { PhotoBand } from "@/components/sections/PhotoBand";
 import { StoryBento } from "@/components/sections/StoryBento";
 import { Gallery } from "@/components/sections/Gallery";
 import { Team } from "@/components/sections/Team";
@@ -9,6 +10,8 @@ import { Groups } from "@/components/sections/Groups";
 import { Reviews } from "@/components/sections/Reviews";
 import { Branches } from "@/components/sections/Branches";
 import { FinalCta } from "@/components/sections/FinalCta";
+import { site } from "@/content/site";
+import { cutBand } from "@/content/photography";
 
 /**
  * HOME — the primary conversion surface.
@@ -20,6 +23,9 @@ import { FinalCta } from "@/components/sections/FinalCta";
  *   TrustBar  five objections killed in one viewport height
  *   Services  the tiered menu with real prices
  *   TierScroll  pinned comparison — which chair is for you, not just what it costs
+ *   PhotoBand a full-bleed breath between "what it costs" and "who we are",
+ *             carrying the one piece of the brand's own story copy that was
+ *             written for the site and then never rendered anywhere on it
  *   Story     "Our Story" as a bento grid of real facts
  *   Gallery   proof of skill (the strongest asset on the site)
  *   Team      currently an honest gap panel — no invented barbers
@@ -38,6 +44,7 @@ export default function HomePage() {
       <TrustBar />
       <Services />
       <TierScroll />
+      <PhotoBand photo={cutBand}>{site.story.experience}</PhotoBand>
       <StoryBento />
       <Gallery />
       <Team />

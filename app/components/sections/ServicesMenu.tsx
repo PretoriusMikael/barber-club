@@ -30,7 +30,7 @@ export function ServicesMenu() {
       <div className="mt-14 space-y-16">
         {servicesByCategory(tier).map(([category, list]) => (
           <div key={category}>
-            <Eyebrow>{categoryLabels[category]}</Eyebrow>
+            <Eyebrow as="h3">{categoryLabels[category]}</Eyebrow>
             <ul className="mt-6 divide-y divide-line border-y border-line">
               {list.map((service) => {
                 const price = priceFor(service, tier);
