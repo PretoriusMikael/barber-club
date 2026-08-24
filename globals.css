@@ -198,11 +198,10 @@
   /* ------------------------------------------------------------------
      THE PRE-RENDERED SCISSOR — see components/three/ScissorStill.tsx.
 
-     Placement comes from the ALPHA BOUNDING BOX of the render, not from
-     eyeballing a screenshot: the scene was rendered at a viewport that is a
-     pixel-exact 3x of a phone, the opaque bounds were measured, and these are
-     those bounds as fractions of the frame. So the picture sits exactly where
-     WebGL drew the object, and the two are interchangeable.
+     A two-frame sprite: blades closed on the top half, open on the bottom.
+     Placement comes from the UNION alpha bounds of both frames, measured on
+     renders taken at a viewport that is a pixel-exact 3x of a phone — so the
+     picture sits where WebGL drew the object and both poses share one pivot.
      ------------------------------------------------------------------ */
   .scissor-still {
     position: absolute;
@@ -210,44 +209,46 @@
     top: var(--scissor-y);
     width: var(--scissor-w);
     height: var(--scissor-h);
-    object-fit: contain;
-    /* The object was rendered against transparency; nothing here should ever
-       introduce a box around it. */
-    background: none;
+    background-repeat: no-repeat;
+    /* Twice the height: one frame shown, one below it. */
+    background-size: 100% 200%;
+    background-position: 0 0;
+    /* The wrapper is pointer-events:none so the hero's CTAs stay reachable;
+       this box opts back in for itself so a tap can reach it. */
+    pointer-events: auto;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
   }
 
-  /* Two different crops of two different renders, so the placement switches
-     with the source rather than being one compromise for both. */
   @media (orientation: portrait) {
     .scissor-still {
-      --scissor-x: 42.91%;
+      background-image: url("/scissor/scissor-portrait.webp");
+      --scissor-x: 35.9%;
       --scissor-y: 6.56%;
-      --scissor-w: 45.64%;
-      --scissor-h: 37.72%;
+      --scissor-w: 64.1%;
+      --scissor-h: 38.35%;
     }
   }
 
   @media (orientation: landscape) {
     .scissor-still {
-      --scissor-x: 64.14%;
+      background-image: url("/scissor/scissor-landscape.webp");
+      --scissor-x: 61.57%;
       --scissor-y: 4.53%;
-      --scissor-w: 26.62%;
-      --scissor-h: 82.56%;
+      --scissor-w: 37.24%;
+      --scissor-h: 83.59%;
     }
   }
 
   /* The arrival, reproduced from the WebGL entry rather than invented.
 
-     ENTRY_OFFSET in scissorPose.ts starts the object 2.6 world units further
-     from a camera 9 units back — an apparent size of 9/11.6, or 0.78 — times a
-     0.86 scale multiplier, which is the 0.67 below. It also starts 0.55 units
-     high, and the frame is 5.16 units tall, so that is 10.7% of the frame or
-     28% of this image's own height. And it starts over-rotated by 0.34 rad;
-     three counts z-rotation anticlockwise and CSS counts it clockwise, hence
-     the sign flip to -19.5deg.
-
-     A small opacity ramp is the one addition: in the scene the object arrives
-     out of depth, which a flat image cannot do, and without it it simply pops. */
+     ENTRY_OFFSET starts the object 2.6 world units further from a camera 9
+     units back — an apparent size of 9/11.6, or 0.78 — times a 0.86 scale
+     multiplier, which is the 0.67 below. It also starts 0.55 units high against
+     a 5.16-unit frame, which is 28% of this element's own height, and
+     over-rotated by 0.34 rad; three counts z-rotation anticlockwise and CSS
+     counts it clockwise, hence -19.5deg. */
   .scissor-still-arrive {
     animation: scissor-arrive 1000ms cubic-bezier(0.22, 1, 0.36, 1) both;
   }
@@ -264,6 +265,39 @@
       opacity: 1;
       transform: translateY(0) rotate(0deg) scale(1);
     }
+  }
+
+  /* --- Snip snip ------------------------------------------------------
+     Two animations at once, because the two halves of the motion want
+     different timing. The blades JUMP between sprite rows, so that one runs
+     on `step-end` — interpolating background-position would slide the sprite
+     across the box instead of cutting between frames. The hand travels
+     continuously underneath, so that one eases.
+
+     Percentages are of the 885ms in SNIP_DURATION, and the phases line up with
+     the WebGL sequence: part, cut, beat, part less, cut, recover. The travel is
+     down and slightly right because the portrait pose points the blades that
+     way — it advances along its own axis rather than sliding sideways. */
+  .scissor-still-snip {
+    animation:
+      scissor-snip-frames 885ms step-end both,
+      scissor-snip-move 885ms cubic-bezier(0.3, 0, 0.2, 1) both;
+  }
+
+  @keyframes scissor-snip-frames {
+    0% { background-position: 0 0; }
+    7% { background-position: 0 100%; }
+    21% { background-position: 0 0; }
+    33% { background-position: 0 100%; }
+    48% { background-position: 0 0; }
+    100% { background-position: 0 0; }
+  }
+
+  @keyframes scissor-snip-move {
+    0% { transform: none; }
+    23% { transform: translate(1.4%, 3.2%) rotate(2.5deg); }
+    52% { transform: translate(2.8%, 6.4%) rotate(5deg); }
+    100% { transform: none; }
   }
 
   /* ------------------------------------------------------------------
@@ -498,7 +532,8 @@
      panels sliding. The screen simply clears. Reduced motion means fewer and
      gentler animations, not a page that never opens — so this still has a
      transition, it just has no travel. */
-  .scissor-still-arrive {
+  .scissor-still-arrive,
+  .scissor-still-snip {
     animation: none !important;
   }
 

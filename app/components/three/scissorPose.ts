@@ -115,6 +115,57 @@ export const CUT_DURATION = 0.42;
  */
 export const CUT_SETTLE = 0.35;
 
+/* --- SNIP SNIP -------------------------------------------------------------
+ *
+ * Click the scissor and it cuts twice, the way a barber actually does it.
+ *
+ * What that means, from watching one work rather than from imagining it:
+ *
+ *   A barber's snip is ASYMMETRIC. The close is fast and the open is slower —
+ *   the blades are driven shut and then relax apart. An even open-close reads
+ *   as a machine, and it is the single most common tell in a fake one.
+ *
+ *   They come in pairs and threes, not singly, at roughly five a second, and
+ *   the hand TRAVELS between them. A barber is working along a section, so the
+ *   tool advances a little each snip and the wrist rolls with it. Two snips in
+ *   exactly the same place is a prop being demonstrated, not a cut.
+ *
+ *   The second snip is smaller than the first. The hand is already moving, so
+ *   the blades do not reopen as far.
+ *
+ * `TRAVEL` is along the blade axis, so the tool advances the way it is pointing
+ * rather than sliding sideways across the screen.
+ * -------------------------------------------------------------------------- */
+export const SNIP = {
+  /** Blades part to here before the first cut. Radians. */
+  openA: 0.46,
+  /** And to here before the second — less, because the hand is already moving. */
+  openB: 0.33,
+
+  /** Seconds. The open is nearly twice the close: that ratio is the whole feel. */
+  openTime: 0.13,
+  closeTime: 0.075,
+  /** Beat between the two cuts. */
+  gap: 0.055,
+
+  /** How far the tool advances along its own blade axis, in local units. */
+  travel: 0.42,
+  /** Wrist roll accumulated across the pair, radians. */
+  roll: 0.1,
+  /** A small lift, so the travel is an arc rather than a slide. */
+  lift: 0.12,
+
+  /** Time to drift back to rest once the second cut lands. */
+  recover: 0.42,
+
+  /** Amplitude of the damped ring as the blades meet. */
+  ring: 0.045,
+} as const;
+
+/** Total length of the sequence, derived so nothing has to be kept in sync. */
+export const SNIP_DURATION =
+  SNIP.openTime + SNIP.closeTime + SNIP.gap + SNIP.openTime + SNIP.closeTime + SNIP.recover;
+
 /**
  * Pointer parallax limits, radians and world units.
  *

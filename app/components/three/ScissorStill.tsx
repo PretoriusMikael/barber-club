@@ -1,71 +1,91 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useRef, useState } from "react";
 import { signalReady } from "@/lib/curtain";
 
 /**
  * The scissor as a picture, for every device that was never going to benefit
- * from it being a scene.
+ * from it being a scene — and it snips when you tap it.
  *
  * WHY THIS EXISTS
  *
- * On a phone the WebGL scissor was rendering at 390x844 against a 1170x2532
- * screen — 33% resolution per axis, 11% of the pixels — with antialiasing off
- * and, worst of all, normal maps disabled, which put the blades back to the flat
- * uniform fills that the whole material pass existed to fix. It looked like a
- * low-resolution render upscaled, because it was one.
+ * On a phone the WebGL scissor rendered at 390x844 against a 1170x2532 screen —
+ * 33% resolution per axis, 11% of the pixels — with antialiasing off and normal
+ * maps disabled, which put the blades back to the flat uniform fills the whole
+ * material pass existed to fix. And it did that at enormous cost for no
+ * interaction, because what WebGL buys here is pointer parallax and a touch
+ * device has no pointer. Roughly 226 KB gz of three.js, a shader compile and a
+ * live context, to produce a still image, badly.
  *
- * And it was doing that at enormous cost for no interaction, because the thing
- * WebGL buys here is pointer parallax — and a touch device has no pointer. After
- * the arrival the mobile scene never moved again. So roughly 226 KB gz of
- * three.js, a shader compile and a live WebGL context were being spent to
- * produce a still image, badly.
+ * TWO FRAMES, ONE FILE
  *
- * This is the same still image, produced properly: rendered from that exact
- * scene at a viewport which is a pixel-for-pixel 3x of a phone, so the pose maths
- * lands on identical numbers rather than being re-derived by eye. 28 KB, sharp at
- * any density, no context, no compile.
+ * The asset is a sprite: blades closed on top, blades open beneath, both
+ * rendered from the real scene at a viewport that is a pixel-exact 3x of a
+ * phone. Both frames are cropped to the UNION of their alpha bounds, so they
+ * share one coordinate frame — crop each to its own bounds and the pivot lands
+ * somewhere different in each, and the snip reads as a glitch instead of a
+ * hinge.
  *
- * WHAT IS LOST: the blades no longer snip. A still cannot. The arrival is
- * reproduced below in CSS — it was only ever position, rotation and scale — but
- * the cut itself is a desktop moment now.
+ * Stepping between the two rows is what makes the blades move. It is a
+ * two-position animation rather than a smooth articulation, which is honest
+ * about what a picture can do: a real snip is fast enough that two frames read
+ * as a cut rather than as stop-motion, and the travel underneath it is
+ * continuous.
  *
- * PLACEMENT is expressed as fractions of the hero box, taken from the alpha
- * bounding box of the render rather than measured off a screenshot, so the image
- * lands exactly where WebGL drew it. Both orientations are in globals.css.
+ * A `<div>` with a background rather than an `<img>` inside a `<picture>`: the
+ * frame swap is a background-position step, which scales with the element,
+ * whereas object-position on a scaled img does not. The orientation switch
+ * moves into CSS with it, and the browser still only fetches the matching one.
  */
+
+/** Matches SNIP_DURATION in scissorPose.ts and the keyframes in globals.css. */
+const SNIP_MS = 885;
+
 export function ScissorStill({ animate }: { animate: boolean }) {
-  // The loading screen waits on this the same way it waits on the WebGL scene's
-  // first frame — same signal, so the curtain does not need to know which of the
-  // two it got.
+  // The loading screen waits on this the same way it waits on the WebGL
+  // scene's first frame — same signal, so it need not know which it got.
   const onReady = useCallback(() => signalReady("scene"), []);
+  const [snipping, setSnipping] = useState(false);
+  const timer = useRef<number | null>(null);
+
+  const snip = useCallback(() => {
+    // Restart rather than ignore: tapping twice should cut twice, and a
+    // one-shot that swallows the second tap reads as broken.
+    if (timer.current) window.clearTimeout(timer.current);
+    setSnipping(false);
+    // Two frames of gap so the class removal actually lands before it is
+    // re-added; without it React batches both and the animation never restarts.
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        setSnipping(true);
+        timer.current = window.setTimeout(() => setSnipping(false), SNIP_MS);
+      })
+    );
+  }, []);
 
   return (
-    <picture>
-      {/* `<picture>` rather than two positioned <img>s: a hidden img still
-          downloads, and these are different crops of different sizes. Only the
-          matching source is ever fetched. */}
-      <source
-        media="(orientation: landscape)"
-        srcSet="/scissor/scissor-landscape.webp"
-        width={674}
-        height={966}
-      />
-      {/* A bare <img>, not next/image: next/image cannot express "position
-          this by the alpha bounds of the source", and there is nothing for the
-          optimiser to do — the asset is already a cropped WebP at its final
-          density, and it must stay inside <picture> for the source switch. */}
-      <img
-        src="/scissor/scissor-portrait.webp"
-        alt=""
-        aria-hidden
-        width={534}
-        height={955}
-        decoding="async"
-        onLoad={onReady}
-        onError={onReady}
-        className={animate ? "scissor-still scissor-still-arrive" : "scissor-still"}
-      />
-    </picture>
+    <div
+      className={`scissor-still${snipping ? " scissor-still-snip" : ""}${
+        animate ? " scissor-still-arrive" : ""
+      }`}
+      /* The wrapper above is pointer-events:none so the canvas can never
+         swallow a tap meant for the Book button. This one opts back in for
+         itself alone — it is a small box over empty hero, nowhere near a
+         control. `role`/`aria-hidden` stay off the a11y tree: it is decoration
+         that happens to react, not a control, and there is nothing behind it
+         that a keyboard user would be missing. */
+      onPointerDown={snip}
+      aria-hidden
+      // Signals the curtain once the sprite has actually painted.
+      ref={(el) => {
+        if (!el) return;
+        const url = getComputedStyle(el).backgroundImage.match(/url\("?([^")]+)"?\)/)?.[1];
+        if (!url) return onReady();
+        const img = new Image();
+        img.onload = onReady;
+        img.onerror = onReady;
+        img.src = url;
+      }}
+    />
   );
 }

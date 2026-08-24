@@ -19,6 +19,8 @@ import {
   CUT_SETTLE,
   POINTER_ROTATION,
   POINTER_DRIFT,
+  SNIP,
+  SNIP_DURATION,
 } from "./scissorPose";
 
 /**
@@ -56,6 +58,82 @@ import {
 /** Frames the scene keeps rendering after the pointer stops, to let it settle. */
 const POINTER_SETTLE = 0.45;
 
+interface SnipFrame {
+  /** Blade angle at this instant. */
+  blade: number;
+  /** How far through the pair we are, 0 → 1, for the travel and the roll. */
+  advance: number;
+  /** Body kick from the force of the cut. */
+  kick: number;
+}
+
+/**
+ * The snip, evaluated at a point in time rather than stepped.
+ *
+ * Written as a pure function of elapsed seconds so it can be restarted mid-flight
+ * — click again while it is running and it simply begins from zero, with no
+ * accumulated state to unwind. A stepped implementation would need every phase
+ * unwound by hand on interrupt, and that is where these break.
+ *
+ * The close uses an ease-IN (t²) and the open an ease-OUT (1-(1-t)²). That is
+ * the asymmetry doing the work: driven shut, relaxed apart.
+ */
+function snipAt(t: number): SnipFrame {
+  const { openA, openB, openTime, closeTime, gap, recover, ring } = SNIP;
+  const easeIn = (x: number) => x * x;
+  const easeOut = (x: number) => 1 - (1 - x) * (1 - x);
+  // A short damped oscillation, so the blades arrive rather than stop dead.
+  const chatter = (x: number) => Math.sin(x * Math.PI * 3) * Math.exp(-x * 7) * ring;
+
+  let cursor = 0;
+
+  // 1. Part the blades.
+  if (t < (cursor += openTime)) {
+    const x = t / openTime;
+    return { blade: BLADE_CLOSED + (openA - BLADE_CLOSED) * easeOut(x), advance: 0, kick: 0 };
+  }
+
+  // 2. First cut.
+  if (t < (cursor += closeTime)) {
+    const x = (t - (cursor - closeTime)) / closeTime;
+    return {
+      blade: openA + (BLADE_CLOSED - openA) * easeIn(x) + chatter(x),
+      advance: 0.5 * easeIn(x),
+      kick: Math.sin(x * Math.PI) * 0.05,
+    };
+  }
+
+  // 3. Beat, blades shut, hand still moving.
+  if (t < (cursor += gap)) {
+    return { blade: BLADE_CLOSED, advance: 0.5, kick: 0 };
+  }
+
+  // 4. Part again, less far.
+  if (t < (cursor += openTime)) {
+    const x = (t - (cursor - openTime)) / openTime;
+    return {
+      blade: BLADE_CLOSED + (openB - BLADE_CLOSED) * easeOut(x),
+      advance: 0.5 + 0.25 * x,
+      kick: 0,
+    };
+  }
+
+  // 5. Second cut.
+  if (t < (cursor += closeTime)) {
+    const x = (t - (cursor - closeTime)) / closeTime;
+    return {
+      blade: openB + (BLADE_CLOSED - openB) * easeIn(x) + chatter(x),
+      advance: 0.75 + 0.25 * easeIn(x),
+      kick: Math.sin(x * Math.PI) * 0.035,
+    };
+  }
+
+  // 6. Drift back to where it started.
+  const x = Math.min(1, (t - cursor) / recover);
+  const back = 1 - easeOut(x);
+  return { blade: BLADE_CLOSED, advance: back, kick: 0 };
+}
+
 function Rig({
   tier,
   onSettled,
@@ -67,7 +145,7 @@ function Rig({
   const halfA = useRef<THREE.Group>(null);
   const halfB = useRef<THREE.Group>(null);
 
-  const { viewport, invalidate, size } = useThree();
+  const { viewport, invalidate, size, camera, gl } = useThree();
 
   /* --- Composition ------------------------------------------------------
    * Derived from the frame the camera actually sees, so the pose holds at any
@@ -100,8 +178,12 @@ function Rig({
   const follow = useRef({ x: 0, y: 0 });
   const pointerActive = useRef(0); // seconds of render still owed to the pointer
 
+  // Elapsed seconds into a snip, or null when idle. A click restarts it at 0.
+  const snipT = useRef<number | null>(null);
+  const hovering = useRef(false);
+
   const applyPose = useCallback(
-    (t: number, bladeAngle: number, zKick: number) => {
+    (t: number, bladeAngle: number, zKick: number, snip: SnipFrame | null) => {
       const g = root.current;
       if (!g) return;
 
@@ -109,15 +191,31 @@ function Rig({
       const inv = 1 - t;
       const f = follow.current;
 
+      const roll = snip ? snip.advance * SNIP.roll : 0;
+      const rotZ =
+        pose.rotation[2] + inv * ENTRY_OFFSET.rotationZ + zKick + (snip?.kick ?? 0) - roll;
+
+      /* The hand advances ALONG THE BLADE, not across the screen. Rotating the
+         travel by the tool's own roll angle is what makes it read as working
+         down a section rather than sliding sideways; a fixed x/y offset looks
+         like the whole object was nudged. The small lift turns the slide into
+         a shallow arc, which is what a wrist does. */
+      const advance = snip ? snip.advance * SNIP.travel * layout.scale : 0;
+      const lift = snip ? Math.sin(snip.advance * Math.PI) * SNIP.lift * layout.scale : 0;
+
       g.position.set(
-        layout.x + f.x * POINTER_DRIFT.x,
-        layout.y + inv * ENTRY_OFFSET.y + f.y * POINTER_DRIFT.y,
+        layout.x + f.x * POINTER_DRIFT.x + Math.cos(rotZ) * advance,
+        layout.y +
+          inv * ENTRY_OFFSET.y +
+          f.y * POINTER_DRIFT.y +
+          Math.sin(rotZ) * advance +
+          lift,
         inv * ENTRY_OFFSET.z
       );
       g.rotation.set(
         pose.rotation[0] - f.y * POINTER_ROTATION.x,
         pose.rotation[1] + f.x * POINTER_ROTATION.y,
-        pose.rotation[2] + inv * ENTRY_OFFSET.rotationZ + zKick
+        rotZ
       );
       const s = layout.scale * (ENTRY_OFFSET.scale + (1 - ENTRY_OFFSET.scale) * t);
       g.scale.setScalar(s);
@@ -136,13 +234,13 @@ function Rig({
     if (tier === "still") {
       entry.current = 1;
       cutDone.current = true;
-      applyPose(1, BLADE_CLOSED, 0);
+      applyPose(1, BLADE_CLOSED, 0, null);
       invalidate();
       onSettled();
       return;
     }
     // Everything else starts at the beginning of the arrival.
-    applyPose(entry.current, cutDone.current ? BLADE_CLOSED : BLADE_OPEN, 0);
+    applyPose(entry.current, cutDone.current ? BLADE_CLOSED : BLADE_OPEN, 0, null);
     invalidate();
   }, [tier, applyPose, invalidate, onSettled]);
 
@@ -179,6 +277,65 @@ function Rig({
       document.removeEventListener("pointerleave", onLeave);
     };
   }, [tier, invalidate]);
+
+  /* --- Click to snip ------------------------------------------------------
+   * The canvas is `pointer-events: none` and stays that way. That is not
+   * incidental: a transparent full-hero canvas that accepts pointer events
+   * swallows taps meant for the Book button underneath it, and R3F cannot help
+   * — its `onPointerMissed` still leaves the DOM event consumed by the canvas.
+   *
+   * So the listener lives on the window and the hit test is done by hand. If
+   * the ray misses the scissor nothing happens and the click has already
+   * reached whatever was underneath, because the canvas never intercepted it.
+   * Interaction on the object, and zero interference with everything else.
+   * -------------------------------------------------------------------- */
+  useEffect(() => {
+    if (tier === "still") return;
+    const canvas = gl.domElement;
+    const ray = new THREE.Raycaster();
+    const ndc = new THREE.Vector2();
+
+    const hits = (e: PointerEvent | MouseEvent) => {
+      const g = root.current;
+      if (!g) return false;
+      const r = canvas.getBoundingClientRect();
+      if (!r.width || !r.height) return false;
+      ndc.set(
+        ((e.clientX - r.left) / r.width) * 2 - 1,
+        -((e.clientY - r.top) / r.height) * 2 + 1
+      );
+      ray.setFromCamera(ndc, camera);
+      return ray.intersectObject(g, true).length > 0;
+    };
+
+    const onClick = (e: MouseEvent) => {
+      if (!hits(e)) return;
+      // Restart from zero rather than ignoring the click. snipAt is a pure
+      // function of elapsed time, so an interrupt needs nothing unwound, and
+      // clicking repeatedly gives you repeated snips instead of a dead object.
+      snipT.current = 0;
+      invalidate();
+    };
+
+    // Hover is only a cursor change, but without it there is nothing telling
+    // anyone the object can be clicked at all.
+    const onMove = (e: PointerEvent) => {
+      const over = hits(e);
+      if (over === hovering.current) return;
+      hovering.current = over;
+      document.body.style.cursor = over ? "pointer" : "";
+    };
+
+    window.addEventListener("click", onClick);
+    if (tier === "high") window.addEventListener("pointermove", onMove, { passive: true });
+    return () => {
+      window.removeEventListener("click", onClick);
+      window.removeEventListener("pointermove", onMove);
+      // Never leave the cursor changed behind us.
+      if (hovering.current) document.body.style.cursor = "";
+      hovering.current = false;
+    };
+  }, [tier, camera, gl, invalidate]);
 
   useFrame((_, rawDelta) => {
     if (tier === "still") return;
@@ -245,7 +402,22 @@ function Rig({
       else pointerActive.current = 0;
     }
 
-    applyPose(e, blade, kick);
+    /* --- Snip snip --------------------------------------------------------
+     * Runs on top of everything else and wins the blade angle: a click should
+     * cut whether or not the arrival is still settling. */
+    let snip: SnipFrame | null = null;
+    if (snipT.current !== null) {
+      snipT.current += dt;
+      if (snipT.current >= SNIP_DURATION) {
+        snipT.current = null;
+      } else {
+        snip = snipAt(snipT.current);
+        blade = snip.blade;
+        needsAnother = true;
+      }
+    }
+
+    applyPose(e, blade, kick, snip);
 
     // Demand mode: every frame has to ask for the next one, or the loop stops.
     // This is the whole battery story — when nothing is moving, nothing renders.
