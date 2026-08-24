@@ -6,6 +6,7 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { StickyCta } from "@/components/layout/StickyCta";
 import { Curtain } from "@/components/layout/Curtain";
+import { DevToolbarGate } from "@/components/dev/DevToolbarGate";
 import { JsonLd, organizationSchema } from "@/lib/schema";
 import { Analytics } from "@vercel/analytics/next";
 
@@ -116,6 +117,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Footer />
         <StickyCta />
         <Analytics />
+
+        {/* The design prototyping toolbar, development only. The gate is what
+            keeps it out of production — see the note in DevToolbarGate, and do
+            not be tempted to inline the condition here. That is what this
+            started as, and it shipped the whole toolbar to production. */}
+        <DevToolbarGate />
       </body>
     </html>
   );
