@@ -42,6 +42,9 @@
      curves, not five: `expo` for arrivals, `swift` for anything leaving. */
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-swift: cubic-bezier(0.4, 0, 0.2, 1);
+  /* The Cut's parting animation. Kept in sync with SPLIT_MS in
+     components/layout/Curtain.tsx, which schedules the unmount against it. */
+  --curtain-split: 760ms;
 
   /* --- shadcn-registry bridge ---------------------------------------------
      Watermelon UI ships shadcn-registry components, which reference shadcn's
@@ -192,6 +195,249 @@
     display: inline;
   }
 
+  /* ------------------------------------------------------------------
+     THE PRE-RENDERED SCISSOR — see components/three/ScissorStill.tsx.
+
+     Placement comes from the ALPHA BOUNDING BOX of the render, not from
+     eyeballing a screenshot: the scene was rendered at a viewport that is a
+     pixel-exact 3x of a phone, the opaque bounds were measured, and these are
+     those bounds as fractions of the frame. So the picture sits exactly where
+     WebGL drew the object, and the two are interchangeable.
+     ------------------------------------------------------------------ */
+  .scissor-still {
+    position: absolute;
+    left: var(--scissor-x);
+    top: var(--scissor-y);
+    width: var(--scissor-w);
+    height: var(--scissor-h);
+    object-fit: contain;
+    /* The object was rendered against transparency; nothing here should ever
+       introduce a box around it. */
+    background: none;
+  }
+
+  /* Two different crops of two different renders, so the placement switches
+     with the source rather than being one compromise for both. */
+  @media (orientation: portrait) {
+    .scissor-still {
+      --scissor-x: 42.91%;
+      --scissor-y: 6.56%;
+      --scissor-w: 45.64%;
+      --scissor-h: 37.72%;
+    }
+  }
+
+  @media (orientation: landscape) {
+    .scissor-still {
+      --scissor-x: 64.14%;
+      --scissor-y: 4.53%;
+      --scissor-w: 26.62%;
+      --scissor-h: 82.56%;
+    }
+  }
+
+  /* The arrival, reproduced from the WebGL entry rather than invented.
+
+     ENTRY_OFFSET in scissorPose.ts starts the object 2.6 world units further
+     from a camera 9 units back — an apparent size of 9/11.6, or 0.78 — times a
+     0.86 scale multiplier, which is the 0.67 below. It also starts 0.55 units
+     high, and the frame is 5.16 units tall, so that is 10.7% of the frame or
+     28% of this image's own height. And it starts over-rotated by 0.34 rad;
+     three counts z-rotation anticlockwise and CSS counts it clockwise, hence
+     the sign flip to -19.5deg.
+
+     A small opacity ramp is the one addition: in the scene the object arrives
+     out of depth, which a flat image cannot do, and without it it simply pops. */
+  .scissor-still-arrive {
+    animation: scissor-arrive 1000ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  @keyframes scissor-arrive {
+    from {
+      opacity: 0;
+      transform: translateY(-28%) rotate(-19.5deg) scale(0.67);
+    }
+    40% {
+      opacity: 1;
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) rotate(0deg) scale(1);
+    }
+  }
+
+  /* ------------------------------------------------------------------
+     THE CUT — the loading screen. See components/layout/Curtain.tsx.
+
+     Everything animated here is transform, opacity or clip-path, so it runs
+     on the compositor. That is the entire point of the thing: while these
+     panels move, the main thread is free to parse three.js and compile
+     shaders, and the animation physically cannot stutter from it.
+     ------------------------------------------------------------------ */
+  #curtain {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    /* FAILSAFE. If the inline script runs but React never hydrates, nothing
+       below would ever move and the panel would cover the site forever. This
+       fades the whole element out at 3s no matter what. It lives on the OUTER
+       element while the split lives on the inner halves, so the two animations
+       can never fight over the same property. */
+    animation: curtain-failsafe 400ms linear 3s both;
+  }
+
+  @keyframes curtain-failsafe {
+    to {
+      opacity: 0;
+      visibility: hidden;
+    }
+  }
+
+  .curtain-half {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 50%;
+    overflow: hidden;
+    background-color: var(--color-ink);
+    will-change: transform;
+  }
+
+  .curtain-top {
+    top: 0;
+  }
+
+  .curtain-bottom {
+    bottom: 0;
+  }
+
+  /* A full-viewport-height box inside each half, positioned so the wordmark
+     lands dead on the split line. The half's own overflow does the cutting. */
+  .curtain-inner {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 200%;
+    display: grid;
+    place-items: center;
+  }
+
+  .curtain-top .curtain-inner {
+    top: 0;
+  }
+
+  .curtain-bottom .curtain-inner {
+    top: -100%;
+  }
+
+  .curtain-mark {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 7vw, 4.5rem);
+    letter-spacing: 0.16em;
+    /* Bebas is all caps; the tracking above needs the trailing space trimmed
+       or the word sits visibly left of centre. */
+    text-indent: 0.16em;
+    color: var(--color-bone);
+    white-space: nowrap;
+  }
+
+  /* The blade. Draws across while loading, then leaves with the panels. */
+  .curtain-hair {
+    position: absolute;
+    top: 50%;
+    left: 8%;
+    right: 8%;
+    height: 1.5px;
+    background-color: var(--color-brass);
+    box-shadow:
+      0 0 3px rgba(200, 163, 90, 0.9),
+      0 0 18px rgba(200, 163, 90, 0.5);
+    transform: scaleX(0);
+    transform-origin: left center;
+    animation:
+      curtain-draw 900ms var(--ease-out-expo) both,
+      /* Only ever seen if we are still waiting past the floor — it says the
+         page is alive rather than stalled. In the common case the split starts
+         the instant the draw finishes and this is never visible. */
+      curtain-breathe 1600ms ease-in-out 900ms infinite;
+  }
+
+  @keyframes curtain-draw {
+    from {
+      transform: scaleX(0);
+    }
+    to {
+      transform: scaleX(1);
+    }
+  }
+
+  @keyframes curtain-breathe {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.45;
+    }
+  }
+
+  /* --- The cut -------------------------------------------------------
+     The moment the panels start moving, the wrapper stops intercepting.
+
+     This is not cosmetic. `#curtain` is `position: fixed; inset: 0`, so it
+     covers the viewport whether or not anything inside it is still painted —
+     and the halves slide away in 760ms while React needs until `animationend`
+     has propagated to unmount the element, which under load measured over a
+     second later. In that gap the site is fully visible and completely
+     unclickable, which is the worst possible state for a page whose entire job
+     is a booking button. */
+  #curtain.is-opening {
+    pointer-events: none;
+  }
+
+  #curtain.is-opening .curtain-hair {
+    animation: curtain-hair-out 320ms var(--ease-out-expo) both;
+  }
+
+  @keyframes curtain-hair-out {
+    from {
+      opacity: 1;
+      transform: scaleX(1);
+    }
+    to {
+      opacity: 0;
+      transform: scaleX(1);
+    }
+  }
+
+  #curtain.is-opening .curtain-top {
+    animation: curtain-part-up var(--curtain-split) var(--ease-out-expo) both;
+  }
+
+  #curtain.is-opening .curtain-bottom {
+    animation: curtain-part-down var(--curtain-split) var(--ease-out-expo) both;
+  }
+
+  @keyframes curtain-part-up {
+    to {
+      transform: translateY(-100%);
+    }
+  }
+
+  @keyframes curtain-part-down {
+    to {
+      transform: translateY(100%);
+    }
+  }
+
+  /* Content is never hidden behind a script. The inline head script drops
+     `no-js` before first paint, so this only ever applies when scripting is
+     unavailable — in which case the curtain must not exist at all. */
+  .no-js #curtain,
+  .curtain-skip #curtain {
+    display: none;
+  }
+
   /* Hairline rule used between sections. */
   .rule {
     background-image: linear-gradient(
@@ -246,5 +492,30 @@
     transform: none !important;
     filter: none !important;
     clip-path: none !important;
+  }
+
+  /* The Cut, for anyone who asked for less movement: no drawing line, no
+     panels sliding. The screen simply clears. Reduced motion means fewer and
+     gentler animations, not a page that never opens — so this still has a
+     transition, it just has no travel. */
+  .scissor-still-arrive {
+    animation: none !important;
+  }
+
+  .curtain-hair {
+    animation: none !important;
+    transform: scaleX(1) !important;
+    opacity: 0.5 !important;
+  }
+
+  #curtain.is-opening .curtain-top,
+  #curtain.is-opening .curtain-bottom {
+    animation: curtain-clear 260ms linear both !important;
+  }
+
+  @keyframes curtain-clear {
+    to {
+      opacity: 0;
+    }
   }
 }

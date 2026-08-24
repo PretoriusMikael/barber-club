@@ -6,6 +6,7 @@ import * as THREE from "three";
 import { createStudioEnvironment } from "./scissorEnvironment";
 import { Scissor } from "./ScissorModel";
 import { clamp, damp, type RenderTier } from "@/lib/motion";
+import { signalReady } from "@/lib/curtain";
 import {
   REST_POSE,
   PORTRAIT_POSE,
@@ -290,6 +291,15 @@ export default function ScissorScene({ tier }: { tier: Exclude<RenderTier, null>
       frameloop={live ? "always" : "demand"}
       style={{ pointerEvents: "none" }}
       onCreated={({ gl, scene }) => {
+        // Tell the loading screen the scene exists and has compiled, so the
+        // panels can part with the scissor already in place rather than having
+        // it appear a beat later. Deferred by two frames because `onCreated`
+        // fires before the first render: one to let R3F draw, one to be sure it
+        // reached the screen. If this never fires the curtain caps out anyway.
+        requestAnimationFrame(() =>
+          requestAnimationFrame(() => signalReady("scene"))
+        );
+
         // Slightly under 1: ACES plus a bright strip-lit environment was
         // clipping the blade highlights to flat white, which is the other half
         // of why the steel looked like paper. Pulling exposure back keeps the

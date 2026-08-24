@@ -1,5 +1,7 @@
 "use client";
 
+import { useSyncExternalStore } from "react";
+
 /**
  * The motion vocabulary, and the capability gates for the 3D layer.
  *
@@ -33,25 +35,31 @@ interface NavigatorWithCapabilities extends Navigator {
 }
 
 /**
- * What the hero scene is allowed to be on this device.
+ * What the hero scissor is allowed to be on this device.
  *
- *   "high"  full scene: antialiasing, clearcoat, anisotropic steel, pointer
- *           parallax, DPR up to 1.6.
- *   "low"   the same model at DPR 1, no antialiasing, no clearcoat, and no
- *           per-frame pointer tracking. Costs roughly a third of "high" and
- *           still reads as a lit metal object rather than a flat graphic.
- *   "still" one frame, drawn once, never again. This is what reduced-motion
- *           gets: a static 3D render is a picture, not an animation, and
- *           deleting it entirely was answering a request for less movement by
- *           removing an image.
- *   null    no scene at all. No WebGL, Data Saver on, or a 2G/3G connection.
+ *   "high"  A live WebGL scene: antialiasing, clearcoat, the hollow-ground
+ *           normal map, and pointer parallax.
+ *   "low"   A pre-rendered picture of that same scene, with the arrival
+ *           reproduced in CSS. See components/three/ScissorStill.tsx.
+ *   "still" The same picture, not animated. What reduced motion gets.
+ *   null    Nothing. No WebGL context, Data Saver on, or a 2G/3G connection.
  *
- * Thresholds stay conservative, but they no longer disqualify the mid-range
- * Android that most of this site's traffic is actually on: `hardwareConcurrency
- * <= 4` ruled out every 4-core phone AND a fair number of laptops, and
- * `deviceMemory < 4` ruled out most Android handsets outright, so in practice
- * the "3D hero" was a desktop-only easter egg.
+ * THE RULE CHANGED, AND THE REASON IS WORTH KEEPING.
+ *
+ * "low" used to mean a cut-down WebGL scene, and it was the worst of both: DPR
+ * pinned to 1 on a 3x screen, antialiasing off, normal maps off — so a phone got
+ * an object rendered at 11% of its screen's pixels with the material work
+ * disabled, and paid 226 KB gz of three.js plus a shader compile for it.
+ *
+ * The thing WebGL actually buys on this page is pointer parallax. A touch device
+ * has no pointer, so its scene never moved after the arrival: the entire context
+ * existed to produce a still image. Now it gets a still image — the same one,
+ * rendered from the same scene at 3x, sharp at any density, for 28 KB.
+ *
+ * Hence the first check below is capability, not horsepower. A phone is not
+ * excluded for being slow; it is excluded for having nothing to interact with.
  */
+
 export type RenderTier = "high" | "low" | "still" | null;
 
 export function renderTier(): RenderTier {
@@ -81,16 +89,48 @@ export function renderTier(): RenderTier {
 
   if (prefersReducedMotion()) return "still";
 
+  // No hover and a coarse pointer means a touch device: there is no cursor for
+  // the scene to answer, so the scene would be a still image with extra steps.
+  const noPointer = window.matchMedia("(hover: none) and (pointer: coarse)").matches;
+  if (noPointer) return "low";
+
   const cores = typeof nav.hardwareConcurrency === "number" ? nav.hardwareConcurrency : 8;
   const memory = typeof nav.deviceMemory === "number" ? nav.deviceMemory : 8;
   const narrow = window.matchMedia("(max-width: 767px)").matches;
 
   if (cores < 4 || memory < 3) return "low";
-  // Phones get the cheaper scene regardless of what they claim about cores —
-  // a thermally throttled 8-core handset is not an 8-core desktop.
-  if (narrow && (cores < 8 || memory < 6)) return "low";
+  if (narrow) return "low";
 
   return "high";
+}
+
+/**
+ * The tier as a hook, resolved after hydration.
+ *
+ * `renderTier()` reads matchMedia and navigator, so it can only answer on the
+ * client — which makes it exactly the shape `useSyncExternalStore` exists for,
+ * and the same pattern as hooks/useHydrated.ts. The server snapshot is null, so
+ * the server and the first client render agree and hydration cannot mismatch;
+ * the real tier arrives as an ordinary update.
+ *
+ * Reading it in an effect and calling setState was the obvious alternative and
+ * the repo's lint rejects it, correctly: it is a cascading render for a value
+ * that never changes after mount.
+ *
+ * Cached because the answer cannot change for the life of the page and
+ * getSnapshot must return a referentially stable value or React re-renders
+ * forever.
+ */
+let cachedTier: RenderTier | undefined;
+
+const subscribeToNothing = () => () => {};
+
+export function useRenderTier(): RenderTier {
+  return useSyncExternalStore(
+    subscribeToNothing,
+    () => (cachedTier !== undefined ? cachedTier : (cachedTier = renderTier())),
+    () => null
+  );
 }
 
 /**

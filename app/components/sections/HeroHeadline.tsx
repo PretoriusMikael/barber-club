@@ -2,6 +2,7 @@
 
 import { useReducedMotion } from 'motion/react';
 import { TextEffect } from '@/components/motion-primitives/text-effect';
+import { useCurtainPhase } from '@/lib/curtain';
 
 /**
  * The hero headline, wrapped to fix four real defects in a bare <TextEffect>.
@@ -37,6 +38,20 @@ import { TextEffect } from '@/components/motion-primitives/text-effect';
  * The second line's delay was also cut from 0.5s to 0.16s. Half a second of
  * empty space under a finished first line reads as a broken page, and delaying
  * the LCP element by that long is a measurable cost for no design gain.
+ *
+ * 5. THE ENTRANCE MUST NOT BE SPENT BEHIND THE LOADING SCREEN. TextEffect
+ *    hardcodes `initial="hidden" animate="visible"`, so it plays the moment it
+ *    mounts — which, with a curtain over the page, meant the whole word-by-word
+ *    reveal happened under an opaque panel and the visitor was shown a headline
+ *    that had already finished arriving. Until the panels start parting this
+ *    renders the plain sentence instead; the animated version is swapped in as
+ *    the cut opens, so the words arrive WITH the reveal.
+ *
+ *    The static branch is also exactly what the server emits, and
+ *    `useCurtainPhase()` returns "closed" from both `getServerSnapshot` and the
+ *    first client render — so this is a post-hydration update, not a mismatch.
+ *    That distinction is the whole reason the phase lives in an external store
+ *    with an explicit server snapshot rather than in a plain effect.
  */
 
 const EASE = [0.16, 1, 0.3, 1] as [number, number, number, number];
@@ -83,6 +98,18 @@ const CLASSES = 'max-w-4xl text-[clamp(2.75rem,9.5vw,7rem)] leading-[0.86] track
 export function HeroHeadline() {
   const reduced = useReducedMotion();
   const variants = reduced ? WORD_INSTANT : WORD;
+  const phase = useCurtainPhase();
+
+  // Still covered: render the sentence, unanimated. Identical to the server
+  // output, so hydration matches, and it is what a no-JS visitor keeps.
+  if (phase === 'closed') {
+    return (
+      <h1 className={CLASSES} data-reveal>
+        <span className="block">More than a cut.</span>
+        <span className="block text-brass">Welcome to the Club.</span>
+      </h1>
+    );
+  }
 
   return (
     <h1 className={CLASSES} data-reveal data-text-effect="inline">

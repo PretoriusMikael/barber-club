@@ -3,7 +3,9 @@
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
 import { motion, useScroll, useTransform } from "motion/react";
-import { renderTier, type RenderTier } from "@/lib/motion";
+import { useRenderTier } from "@/lib/motion";
+import { hasCurtain } from "@/lib/curtain";
+import { ScissorStill } from "./ScissorStill";
 
 /**
  * Mount gate and scroll behaviour for the hero scissor.
@@ -11,8 +13,8 @@ import { renderTier, type RenderTier } from "@/lib/motion";
  * LCP protection (the hero is the one place WebGL could hurt):
  *   1. The hero's LCP element is the photograph. This canvas is transparent and
  *      purely additive — the hero renders complete and readable with no 3D.
- *   2. The scene mounts after first paint, so three.js never competes with the
- *      hero for bandwidth or main thread.
+ *   2. The scene mounts after first paint, and behind the loading screen where
+ *      there is one, so three.js never competes for bandwidth or main thread.
  *   3. renderTier() decides what the device can afford: nothing on Data Saver
  *      or 2G/3G, a cheaper scene on low-core/low-memory hardware and on phones,
  *      a single static frame under prefers-reduced-motion.
@@ -21,71 +23,68 @@ import { renderTier, type RenderTier } from "@/lib/motion";
  *
  * If it never arrives, nothing is missing. It was never load-bearing.
  *
- * --- The bug this rewrite fixes ------------------------------------------
- *
- * The mount used to be `requestIdleCallback(start, { timeout: 2500 })`, with a
- * `setTimeout` used only as a substitute where rIC does not exist. On a page
- * that starts life in a background tab — restored session, opened in a new tab,
- * link opened from a messaging app, or simply a browser window that is not
- * focused — Chrome does not run idle callbacks at all, and the rIC timeout does
- * not rescue it either: it is honoured relative to the page becoming visible,
- * not to wall-clock time. The result was a hero with no scissor, silently,
- * forever, on a load path that is extremely common for a link shared in a
- * WhatsApp group. Which is how this site gets shared.
- *
- * It was found by loading the page in a hidden tab and counting canvases: zero.
- *
- * The fix is to treat "first paint has happened" as the actual precondition and
- * satisfy it from whichever signal arrives first — idle, a hard timer, or the
- * page becoming visible.
+ * Mount timing — including the background-tab bug that used to leave the hero
+ * with no scissor at all — is documented on the constants below.
  */
 
+/**
+ * Only the "high" tier ever reaches this import, so three.js is not merely
+ * deferred on a phone — it is never requested at all. Everything else gets
+ * ScissorStill, which is a 28 KB picture and no chunk.
+ */
 const ScissorScene = dynamic(() => import("./ScissorScene"), { ssr: false });
 
-/** Hard ceiling on the wait, whatever the browser is doing with idle time. */
-const MOUNT_DEADLINE_MS = 1200;
+/**
+ * How long to wait before mounting three.js, and why there are two answers.
+ *
+ * Mounting costs about 1.9s of main-thread blocking (measured: 3235ms of long
+ * tasks with the scene against 1304ms without, production build, 4x CPU
+ * throttle). Nothing makes that free — the only question is what it lands on.
+ *
+ * BEHIND THE CURTAIN it lands on nothing. The loading screen's panels animate
+ * on the compositor, so a blocked main thread cannot touch them, and the work
+ * happens while the visitor is looking at a still wordmark. Mount at once: the
+ * curtain waits for the scene's first frame anyway, so every millisecond spent
+ * idling here is a millisecond the loading screen stays up.
+ *
+ * WITHOUT ONE — a repeat visit inside the session — the block would land square
+ * on the headline's word-by-word entrance, which is exactly the stutter this
+ * whole exercise started with. So wait out the entrance first: the second line
+ * finishes around 830ms, and 1100ms clears it with room.
+ */
+const MOUNT_BEHIND_CURTAIN_MS = 0;
+const MOUNT_AFTER_ENTRANCE_MS = 1100;
 
 export function HeroScissor() {
-  const [tier, setTier] = useState<RenderTier>(null);
-  const [mounted, setMounted] = useState(false);
+  // Resolved after hydration; null on the server and on the first client render.
+  const tier = useRenderTier();
+  // Only the WebGL scene has a mount worth scheduling, so only it needs a gate.
+  const [sceneReady, setSceneReady] = useState(false);
   const wrap = useRef<HTMLDivElement>(null);
   // Rendering is suspended entirely while the hero is off screen. Starts true
   // because the hero is, by definition, at the top of the page.
   const [inView, setInView] = useState(true);
 
-  /* --- Mount after first paint, from whichever signal lands first -------- */
+  /* --- Mount ------------------------------------------------------------
+   * `requestIdleCallback` used to gate this, with a `setTimeout` only as a
+   * substitute where rIC does not exist. That was a real bug: on a page that
+   * starts life in a background tab — restored session, opened in a new tab, a
+   * link opened from a messaging app — Chrome does not run idle callbacks at
+   * all, and the rIC timeout does not rescue it either, because it is honoured
+   * relative to the page becoming visible rather than to wall-clock time. The
+   * result was a hero with no scissor, silently, forever, on a load path that
+   * is extremely common for a link shared in a WhatsApp group. Which is how
+   * this site gets shared. Found by loading the page in a hidden tab and
+   * counting canvases: zero.
+   *
+   * Idle time is no longer part of the decision. The delay is chosen from
+   * whether a loading screen is covering the page, and a plain timer runs it. */
   useEffect(() => {
-    let done = false;
-    let idle: number | undefined;
-
-    const start = () => {
-      if (done) return;
-      done = true;
-      const t = renderTier();
-      if (!t) return;
-      setTier(t);
-      setMounted(true);
-    };
-
-    // `typeof` rather than `in`: TS treats `"requestIdleCallback" in window` as
-    // exhaustive (the lib types declare it), narrowing the else branch to never.
-    if (typeof window.requestIdleCallback === "function") {
-      idle = window.requestIdleCallback(start, { timeout: MOUNT_DEADLINE_MS });
-    }
-    // Always armed, not just as an rIC substitute — this is the guarantee.
-    const timer = window.setTimeout(start, MOUNT_DEADLINE_MS);
-    // And if the tab was hidden the whole time, mount the moment it is not.
-    document.addEventListener("visibilitychange", start, { once: true });
-
-    return () => {
-      done = true;
-      if (idle !== undefined && typeof window.cancelIdleCallback === "function") {
-        window.cancelIdleCallback(idle);
-      }
-      window.clearTimeout(timer);
-      document.removeEventListener("visibilitychange", start);
-    };
-  }, []);
+    if (tier !== "high") return;
+    const delay = hasCurtain() ? MOUNT_BEHIND_CURTAIN_MS : MOUNT_AFTER_ENTRANCE_MS;
+    const timer = window.setTimeout(() => setSceneReady(true), delay);
+    return () => window.clearTimeout(timer);
+  }, [tier]);
 
   /* --- Suspend when the hero is off screen -------------------------------
    * A decorative canvas holding a WebGL context three screens above the
@@ -93,7 +92,7 @@ export function HeroScissor() {
    * just pausing it, which also releases the context on a long session. */
   useEffect(() => {
     const el = wrap.current;
-    if (!el || !mounted) return;
+    if (!el || !tier) return;
 
     const observer = new IntersectionObserver(
       ([entry]) => setInView(entry.isIntersecting),
@@ -101,7 +100,7 @@ export function HeroScissor() {
     );
     observer.observe(el);
     return () => observer.disconnect();
-  }, [mounted]);
+  }, [tier]);
 
   /* --- Scroll handoff -----------------------------------------------------
    * As the hero leaves, the scissor lifts and fades slightly ahead of the copy
@@ -144,7 +143,11 @@ export function HeroScissor() {
         }}
       />
 
-      {mounted && tier && inView ? <ScissorScene tier={tier} /> : null}
+      {tier && inView
+        ? tier === "high"
+          ? sceneReady && <ScissorScene tier={tier} />
+          : <ScissorStill animate={tier === "low"} />
+        : null}
     </motion.div>
   );
 }

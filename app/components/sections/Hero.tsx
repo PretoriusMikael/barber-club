@@ -101,6 +101,9 @@ export function Hero() {
             src={heroPhoto.src}
             alt=""
             aria-hidden
+            // The loading screen waits on this image's decode() before it
+            // opens, so the hero is painted rather than filling in afterwards.
+            data-hero=""
             fill
             priority
             unoptimized

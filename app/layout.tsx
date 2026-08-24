@@ -5,6 +5,7 @@ import { site } from "@/content/site";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { StickyCta } from "@/components/layout/StickyCta";
+import { Curtain } from "@/components/layout/Curtain";
 import { JsonLd, organizationSchema } from "@/lib/schema";
 import { Analytics } from "@vercel/analytics/next";
 
@@ -76,13 +77,26 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       suppressHydrationWarning
     >
       <head>
-        {/* Drops `.no-js` before first paint so scroll-reveal can take over.
-            With JS disabled the class stays and globals.css keeps every
-            `.reveal` block visible — content is never hidden behind a script
-            on a conversion path. */}
+        {/* Two things that must happen before the first paint.
+
+            Drops `.no-js` so scroll-reveal can take over. With JS disabled the
+            class stays and globals.css keeps every `.reveal` block visible —
+            content is never hidden behind a script on a conversion path, and
+            the loading screen is hidden outright.
+
+            Then decides whether the loading screen runs at all: once per
+            session, not once per navigation. */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `document.documentElement.classList.remove('no-js')`,
+            __html:
+              `document.documentElement.classList.remove('no-js');` +
+              // Decide BEFORE first paint whether the loading screen shows. Read
+              // after mount instead and a returning visitor gets a frame of full
+              // ink before React can remove it, which is a flash of something
+              // that was never meant to be there. `curtain-skip` is styled in
+              // globals.css and read by lib/curtain.ts.
+              `try{if(sessionStorage.getItem('bc:curtain'))` +
+              `document.documentElement.classList.add('curtain-skip')}catch(e){}`,
           }}
         />
         {/* One Organization for the brand; each branch page emits its own
@@ -96,6 +110,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         >
           Skip to content
         </a>
+        <Curtain />
         <Header />
         <main id="main">{children}</main>
         <Footer />
