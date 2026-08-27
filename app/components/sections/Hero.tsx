@@ -1,15 +1,16 @@
 "use client";
 
 import Image from "next/image";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { motion, useScroll, useTransform } from "motion/react";
 import { Star, MapPin } from "lucide-react";
 import { site } from "@/content/site";
 import { branches } from "@/content/branches";
 import { heroVideo } from "@/content/gallery";
+import { useHeroLoopAllowed } from "@/lib/motion";
 import { heroPhoto } from "@/content/photography";
 import { lowestPrice } from "@/content/services";
-import { formatZar } from "@/lib/utils";
+import { cn, formatZar } from "@/lib/utils";
 import { BookButton, ButtonLink } from "@/components/ui/Button";
 import { HeroScissor } from "@/components/three/HeroScissor";
 import { HeroHeadline } from "@/components/sections/HeroHeadline";
@@ -29,16 +30,25 @@ import { LayeredWaves } from "@/components/backgrounds/Haikei";
  * The video is decorative, muted, has no audio track, and is allowed to fail.
  * Explicitly NOT here: a booking iframe — it would wreck LCP and INP.
  *
- * The on-page "hero video needed" placeholder panel is gone: there is a real
- * photograph here now, and a production note printed over it would be worse
- * than the gap it was flagging. The 8-second loop is still outstanding and its
- * brief still lives in content/gallery.ts — when the file lands, set
- * `heroVideo.src` and the <video> branch below takes over with this photograph
- * as its poster.
+ * THE LOOP LAYERS OVER THE PHOTOGRAPH RATHER THAN REPLACING IT, and that is the
+ * whole design. The obvious build is `video ? <video/> : <Image/>`, which is
+ * what this used to be — and it makes the video the LCP element on every device
+ * that gets one, which is precisely the trade the contract above forbids.
+ *
+ * So the photograph always renders, always with `priority`, and the loop mounts
+ * on top of it only after hydration and only where lib/motion.ts says a device
+ * should carry 320 KB of decoration. Three consequences worth stating:
+ *
+ *   - LCP is the same on every device, video or not.
+ *   - A gated device never requests the video at all, because the <video>
+ *     element does not exist in its tree. `preload="none"` would still have
+ *     cost a connection and a poster fetch.
+ *   - The photograph IS the poster. No separate poster file, no second request,
+ *     and no chance of the two drifting out of grade.
  */
 export function Hero() {
-  const hasVideo = Boolean(heroVideo.src);
   const section = useRef<HTMLElement>(null);
+  const loopAllowed = useHeroLoopAllowed();
 
   /* --- Scroll handoff -----------------------------------------------------
    * Three layers leaving the screen at three rates: the backdrop drifts down
@@ -71,46 +81,34 @@ export function Hero() {
         className="absolute inset-0"
         style={{ y: backdropY, scale: backdropScale }}
       >
-        {hasVideo ? (
-          <video
-            className="h-full w-full object-cover"
-            poster={heroVideo.poster || undefined}
-            autoPlay
-            muted
-            loop
-            playsInline
-            preload="metadata"
-            aria-hidden
-          >
-            <source src={heroVideo.src} type="video/mp4" />
-          </video>
-        ) : (
-          /* The LCP element. `priority` emits a preload so it starts fetching
-             in the document head rather than waiting for React, and `sizes` is
-             100vw because it is a full-bleed backdrop at every width.
+        {/* The LCP element, on every device, always. `priority` emits a preload
+            so it starts fetching in the document head rather than waiting for
+            React, and `sizes` is 100vw because it is a full-bleed backdrop at
+            every width.
 
-             `unoptimized` is deliberate and worth the sentence: the source is
-             already AVIF at aggressive compression (1904×822 in 28 KB). Putting
-             that through the image optimiser means decoding and re-encoding
-             lossy-to-lossy, which on a file this compressed shows up as blocking
-             in the window behind the barber — and AVIF encoding is among the
-             slowest things a build can do, for a saving measured against 28 KB.
-             Delete this prop the moment a raw shoot master replaces the file. */
-          <Image
-            src={heroPhoto.src}
-            alt=""
-            aria-hidden
-            // The loading screen waits on this image's decode() before it
-            // opens, so the hero is painted rather than filling in afterwards.
-            data-hero=""
-            fill
-            priority
-            unoptimized
-            sizes="100vw"
-            style={{ objectPosition: heroPhoto.focus }}
-            className="object-cover"
-          />
-        )}
+            `unoptimized` is deliberate and worth the sentence: the source is
+            already AVIF at aggressive compression (1904×822 in 28 KB). Putting
+            that through the image optimiser means decoding and re-encoding
+            lossy-to-lossy, which on a file this compressed shows up as blocking
+            in the window behind the barber — and AVIF encoding is among the
+            slowest things a build can do, for a saving measured against 28 KB.
+            Delete this prop the moment a raw shoot master replaces the file. */}
+        <Image
+          src={heroPhoto.src}
+          alt=""
+          aria-hidden
+          // The loading screen waits on this image's decode() before it
+          // opens, so the hero is painted rather than filling in afterwards.
+          data-hero=""
+          fill
+          priority
+          unoptimized
+          sizes="100vw"
+          style={{ objectPosition: heroPhoto.focus }}
+          className="object-cover"
+        />
+
+        {loopAllowed ? <HeroLoop /> : null}
 
         {/* Legibility gradient. Dark barber aesthetics fail contrast checks
             constantly — this is what keeps the headline at AA. */}
@@ -195,5 +193,42 @@ export function Hero() {
         </div>
       </motion.div>
     </section>
+  );
+}
+
+/**
+ * The 8-second loop, over the photograph.
+ *
+ * It arrives at `opacity-0` and crossfades in on `canplay`, so the swap from
+ * still to motion is a dissolve rather than a pop — and if the video never
+ * becomes playable (a codec neither source covers, a blocked request, autoplay
+ * refused) it simply stays invisible and the photograph is what everyone sees.
+ * There is no error branch to write because failure and "not yet" are the same
+ * state.
+ *
+ * `preload="auto"` is safe here in a way it would not be one level up: this
+ * component only exists on devices that already passed the gate, so eager
+ * loading is the intent rather than an accident.
+ */
+function HeroLoop() {
+  const [playing, setPlaying] = useState(false);
+
+  return (
+    <video
+      className={cn(
+        "absolute inset-0 h-full w-full object-cover transition-opacity duration-1000 ease-[var(--ease-out-expo)]",
+        playing ? "opacity-100" : "opacity-0"
+      )}
+      autoPlay
+      muted
+      loop
+      playsInline
+      preload="auto"
+      aria-hidden
+      onCanPlay={() => setPlaying(true)}
+    >
+      <source src={heroVideo.webm} type="video/webm" />
+      <source src={heroVideo.mp4} type="video/mp4" />
+    </video>
   );
 }

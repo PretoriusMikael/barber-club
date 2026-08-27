@@ -306,7 +306,7 @@ is not on anyone's critical path.
 | `/branches` | **160 KB** | 207 KB | −47 KB |
 | `/services` | **211 KB** | 213 KB | motion still needed |
 | `/gallery` | **212 KB** | 210 KB | motion still needed |
-| `/` | **232 KB** | 230 KB | motion still needed |
+| `/` | **234 KB** | 230 KB | motion still needed; +2 KB for `CutSequence` |
 
 | Other | Target | Result |
 |---|---|---|
@@ -347,6 +347,34 @@ lightbox, the trust-bar marquee. If the budget ever has to win outright, the lev
 `LazyMotion` + `m` components (~15 KB core, features loaded after first paint) — the catch
 being that motion-primitives components import `motion.*` directly and throw under
 `LazyMotion strict`, so it means forking each one and re-forking on every upstream update.
+
+### The video layer, and what it costs whom
+
+Two decorative motion moments, both opt-in per device (`lib/motion.ts`,
+`canPlayHeroLoop` / `canScrubSequence`). Total page transfer on `/`, measured over CDP:
+
+| Context | Hero loop | Scroll frames | Page total |
+|---|---|---|---|
+| Desktop 1440 | 87 KB | 568 KB | **1,289 KB** |
+| Tablet 800 | 87 KB | — | **787 KB** |
+| Phone 390 | — | — | **628 KB** |
+| `prefers-reduced-motion` | — | — | **691 KB** |
+| Data Saver, or 2G/3G | — | — | **493 KB** |
+
+The gates are the design, not a safety net bolted on afterwards. A phone downloads none of
+it and sees the photograph, which is the same thing it saw before any of this existed.
+
+Two decisions worth keeping:
+
+- **The hero photograph stays the LCP element on every device.** The loop layers *over* it
+  and crossfades in on `canplay`. The obvious build — `video ? <video/> : <Image/>` — makes
+  the video the LCP element wherever there is one, which is exactly the trade the hero's
+  performance contract forbids. It also means the photograph is the poster, so there is no
+  second file and no chance of the two drifting out of grade.
+- **The scrub is a frame sequence, not a video.** Scroll-scrubbing `currentTime` seeks to
+  the nearest keyframe and stalls on mobile Safari. All-intra H.264 fixes the seeking and
+  measured **1,956 KB** against **568 KB** for 48 WebP frames. Frames also decode
+  independently, so a half-loaded sequence still scrubs.
 
 **Not yet measured:** LCP, INP, CLS — those need a real deployment with real images.
 

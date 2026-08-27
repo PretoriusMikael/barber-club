@@ -77,18 +77,56 @@ export const gallery: GalleryItem[] = [
 export const homeGallery = gallery.filter((item) => Boolean(item.src));
 
 /**
- * Hero video.
+ * Hero video — the 8-second loop behind the headline.
  *
- * Host on Mux or Cloudflare Stream — adaptive bitrate matters a great deal on
- * SA mobile networks. A self-hosted MP4 is acceptable only for a loop this short.
+ * ⚠️  PLACEHOLDER FOOTAGE. This is licensed stock, standing in so the mechanic
+ *     can be seen and signed off. It is NOT Barber Club's shop and must not
+ *     survive to launch. See PITCH-NOTES.md §2.5. The real brief is `brief`
+ *     below, and this clip is close enough to it to hand the videographer as
+ *     reference.
+ *
+ * THE PHOTOGRAPH IS THE LCP ELEMENT, NOT THIS. The still renders always and the
+ * loop fades in over it once a capability gate passes (lib/motion.ts
+ * `canPlayHeroLoop`), so the video is never on the critical path and never
+ * downloads on a phone, a metered connection or a reduced-motion setting.
+ *
+ * Two encodes, one request: the browser picks the first <source> it can play.
+ * VP9 for everything modern, H.264 for Safari and older Android. No audio track
+ * at all — not a silent one — which is worth about a third of the file.
+ *
+ * Self-hosting is fine at this size. If the final loop grows past ~500 KB, move
+ * it to Mux or Cloudflare Stream: adaptive bitrate matters a great deal on SA
+ * mobile networks.
  */
 export const heroVideo = {
-  /** ~8s seamless loop, muted, no audio track at all (halves the file size). */
-  src: "",
-  /** LCP element. Must exist before launch — the video is decorative. */
-  poster: "",
+  /** VP9. 1152×648, 4.2s, 24fps, no audio, 87 KB. */
+  webm: "/video/hero-loop.webm",
+  /** H.264 fallback, same source. */
+  mp4: "/video/hero-loop.mp4",
   brief:
-    "8s seamless loop: clippers meeting a neckline, slow push-in, shallow DOF, warm practical lighting. No audio track. Poster frame graded identically. Shoot at a flagship branch (Val de Vie or Franschhoek).",
+    "4–8s seamless loop: clippers meeting a neckline, slow push-in, shallow DOF, warm practical lighting. No audio track. Cut so the last frame matches the first — crossfade the tail back over the head if it does not. Keep it dark and low-contrast: the headline sits on top of it, and a bright frame here costs the first viewport its legibility. Shoot at a flagship branch (Val de Vie or Franschhoek).",
+};
+
+/**
+ * The scroll-scrub sequence — see components/sections/CutSequence.tsx.
+ *
+ * ⚠️  PLACEHOLDER FOOTAGE, same caveat as the hero loop above.
+ *
+ * A frame sequence rather than a video, because scroll-scrubbing a video does
+ * not work: setting `currentTime` seeks to the nearest keyframe and stutters
+ * badly on mobile Safari. An all-intra encode fixes the seeking and costs about
+ * four times as much (measured: 1,956 KB against 520 KB for these frames).
+ */
+export const cutSequence = {
+  frames: 48,
+  /** 1-indexed, zero-padded to two digits: /sequence/cut/f01.webp … f48.webp */
+  path: "/sequence/cut",
+  width: 960,
+  height: 540,
+  /** The finished pass. What a gated device is left looking at. */
+  poster: "/sequence/cut/poster.webp",
+  brief:
+    "One continuous pass of a blade fade, locked-off camera, 4–6 seconds, shot at 48fps and cut to 48 frames. The whole point is that scrolling IS cutting, so the clippers must travel in one direction without a cutaway.",
 };
 
 /** Brand/atmosphere shots — the current site's own copy sells coffee, music and

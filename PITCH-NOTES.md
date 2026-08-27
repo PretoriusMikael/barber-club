@@ -122,20 +122,45 @@ Shot from the pavement, signage legible, daylight. This is how a customer recogn
 
 3:4, at their own station, consistent lighting across branches. Tied to §3.1.
 
-**F. Hero video — one 8-second loop**
+**F. Hero video — one 4 to 8 second loop**
 
-Clippers meeting a neckline, slow push-in, shallow depth of field, warm practical lighting. **No audio track at all** — it halves the file size and the video is muted anyway. Plus one poster frame graded to match. Shoot at a flagship branch (Val de Vie or Franschhoek).
+Clippers meeting a neckline, slow push-in, shallow depth of field, warm practical lighting.
 
-The hero currently uses a still photograph and is designed to keep working that way, so the video is an upgrade rather than a blocker.
+Two things that are easy to get wrong and expensive to reshoot:
+
+- **Keep it dark and low-contrast.** The headline sits directly on top of this. We tested a brighter, busier clip in the same slot and it cost the first viewport its legibility — and put a second pair of blades on screen competing with the 3D scissor.
+- **Cut it so the last frame matches the first**, or shoot a few seconds long so we can crossfade the tail back over the head. A loop that jumps is the one flaw everybody notices.
+
+**No audio track at all** — not a silent one. It is worth about a third of the file, and the video is muted regardless. No separate poster frame needed: the hero photograph is the poster.
+
+**G. The scroll sequence — one continuous pass**
+
+This is the new one, and it is the most specific ask on the list.
+
+One unbroken pass of a blade fade, **locked-off camera, 4 to 6 seconds**, shot at a high frame rate and cut down to 48 frames. The whole idea is that *scrolling is cutting* — the visitor's own scroll drives the clippers up the neckline — so it has to be one continuous movement in one direction. **No cutaways, no camera moves, no re-framing.** If the camera drifts, the scrub reads as a wobble rather than a cut.
+
+Shoot it twice: once tight on the clippers, once slightly wider showing the barber's hand and the client's head. We will pick whichever holds up at size.
 
 ### 2.4 Technical specs for the photographer
 
 - **Deliver full-resolution originals**, minimum 3000px on the long edge. We handle compression and format conversion.
-- **Ratios:** 4:5 for service and portrait shots, 3:2 or 16:9 for the wide bands, 3:4 for barber portraits.
+- **Ratios:** 4:5 for service and portrait shots, 3:2 or 16:9 for the wide bands, 3:4 for barber portraits, 16:9 for both video items.
 - **Colour:** warm and consistent. The site is near-black, so frames with a dark or controlled background sit best.
 - **Keep the raw files.** Site formats change; camera originals do not.
 
-**Total outstanding: 26 stills, 11 shopfronts, one portrait per barber, one video loop.**
+**Total outstanding: 26 stills, 11 shopfronts, one portrait per barber, one hero loop, one scroll sequence.**
+
+### 2.5 ⚠️ The two video moments on the preview are placeholder footage
+
+**Please read this one before you show the preview to anyone else.**
+
+The hero loop and the scrolling blade-fade sequence both currently run **licensed stock footage**. It is not Barber Club, not your barbers, and not one of your shops. It is there so the mechanic can be seen, felt and signed off before anyone pays for a video shoot — and it is the one thing on the preview that is deliberately not real.
+
+Three things follow from that:
+
+1. **It must not survive to launch.** Everywhere else the site refuses to use stock — the gallery says so on the page, in those words — so a stock clip on the same page is a contradiction waiting to be spotted. The moment your own footage lands it replaces these files and nothing else changes.
+2. **The clips double as the brief.** They are close enough to what we would ask for that they are worth sending to your videographer as reference. That is genuinely most of the value in them.
+3. **Nothing about the mechanic is placeholder.** The gating, the fallbacks, the byte budget and the way it behaves on a phone are all real and all measured. Only the pictures change.
 
 ---
 
@@ -208,6 +233,7 @@ So the list above reads in proportion — this is finished and live in the demo:
 - **A plain-language answer to "which one is for me"** on the home page — how you get a chair, what a cut costs, what is on each menu, and when to pick which. That question is the whole basis of your two-tier offer and the current site never answers it anywhere.
 - **The group packages surfaced** — Johnnie Red, Black and Blue — with their own page and a block on the home page. At R450–R650 a head against R160 for a walk-in, this is the highest-value thing you sell and today it is buried on a sub-menu.
 - **A booking path from anywhere**: header, hero, a thumb-reach bar on mobile, and the end of every section.
+- **Two moments of motion, both of which pay for themselves.** An eight-second loop behind the headline, and a blade fade that advances as you scroll — your own scrolling drives the clippers. Both are decoration, so both are switched off wherever decoration would cost something: on a phone, on a metered or slow connection, or for anyone whose device asks for less movement. Those visitors get the still photograph and lose nothing they came for. Measured: the phone downloads **none** of it.
 - **Built for phones first**, on the assumption of mobile data — because that is how almost everyone will arrive.
 - **Link previews and a browser icon**, so a link shared in a WhatsApp group looks like Barber Club rather than a grey rectangle — and **every branch has its own preview card**, naming the branch, its street and its own phone number. A Franschhoek link and a Malmesbury link no longer look identical.
 - **A cookie-safe map** on every branch page: it loads only when a visitor asks for it, which keeps the page fast and keeps the privacy notice truthful.

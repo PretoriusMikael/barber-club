@@ -1,0 +1,7 @@
+# Encoded media. Diffing these is meaningless and git's heuristics occasionally
+# guess wrong on .webp, which produces unreadable "binary file changed" noise or,
+# worse, a mangled checkout on a platform with different line endings.
+*.webp binary
+*.webm binary
+*.mp4  binary
+*.avif binary
