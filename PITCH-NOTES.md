@@ -147,7 +147,7 @@ Each of these is a real gap on the current barberclub.co.za, not an oversight on
 |---|---|---|
 | **3.1** | **Barber roster** — name, home branch, speciality, years behind the chair, and one sentence in their own words | *"Book with [name]"* is the strongest call to action a barber site has for returning customers. Your current site sells "a legendary team of experienced barbers" across 17 pages and names none of them. Please collect the sentence from each barber rather than writing it for them |
 | **3.2** | **Which branches are Classic and which are Premier** | The two tiers are described everywhere and mapped nowhere. This decides the badge on every branch card, and where a Premier booking is routed |
-| **3.3** | **How long each service takes** | Not published anywhere today. A booking system cannot build a calendar of slots without it, and stated durations measurably reduce no-shows |
+| **3.3** | **How long each service takes** | Not published anywhere today. A booking system cannot build a calendar of slots without it, and stated durations measurably reduce no-shows. It is also the one thing missing from the Classic-vs-Premier comparison on the home page — time in the chair is the real difference between the two, and there is a row waiting for it |
 | **3.4** | **GPS coordinates for all 11 branches** | Right-click the pin in Google Maps → copy coordinates. Without them the map falls back to an address search and the branch pages lose local-search value |
 | **3.5** | **Google Business Profile links / Place IDs, per branch** | Each branch has its own profile and its own rating. This unlocks real star ratings on the site and in Google results |
 | **3.6** | **Cancellation and no-show policy** | Must be agreed before online booking goes live, and must match whatever the booking system is configured to enforce |
@@ -205,10 +205,11 @@ So the list above reads in proportion — this is finished and live in the demo:
 
 - **All eleven branches**, each with its own page, full address, own phone number, per-day opening hours, public-holiday hours, a live "open now / closed" badge, directions, and search markup that tells Google each is a real local business.
 - **The full service menu, both tiers, on one page** with a Classic ↔ Premier switch. Your current site splits them across two unlinked pages, so nobody can compare R290 against R390 without opening two tabs.
+- **A plain-language answer to "which one is for me"** on the home page — how you get a chair, what a cut costs, what is on each menu, and when to pick which. That question is the whole basis of your two-tier offer and the current site never answers it anywhere.
 - **The group packages surfaced** — Johnnie Red, Black and Blue — with their own page and a block on the home page. At R450–R650 a head against R160 for a walk-in, this is the highest-value thing you sell and today it is buried on a sub-menu.
 - **A booking path from anywhere**: header, hero, a thumb-reach bar on mobile, and the end of every section.
 - **Built for phones first**, on the assumption of mobile data — because that is how almost everyone will arrive.
-- **Link previews and a browser icon**, so a link shared in a WhatsApp group looks like Barber Club rather than a grey rectangle.
+- **Link previews and a browser icon**, so a link shared in a WhatsApp group looks like Barber Club rather than a grey rectangle — and **every branch has its own preview card**, naming the branch, its street and its own phone number. A Franschhoek link and a Malmesbury link no longer look identical.
 - **A cookie-safe map** on every branch page: it loads only when a visitor asks for it, which keeps the page fast and keeps the privacy notice truthful.
 - **Accessible throughout** — completable by keyboard, readable by a screen reader, and contrast-checked against the near-black palette.
 

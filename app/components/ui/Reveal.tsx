@@ -1,26 +1,19 @@
 'use client';
-/* eslint-disable react-hooks/static-components --
-   MotionComponent is a lookup into a module-level registry (see
-   ../motion-primitives/create-motion), not a component created during render.
-   Its identity is stable for the life of the page, so the rule's concern
-   (state resetting on every render) does not apply here. */
 
-import type { ElementType, ReactNode } from 'react';
-import { useRef } from 'react';
-import { useInView, useReducedMotion, type Variants } from 'motion/react';
-import { createMotion } from '@/components/motion-primitives/create-motion';
-import { EASE_OUT_EXPO } from '@/lib/motion';
+import {
+  createElement,
+  useEffect,
+  useRef,
+  type CSSProperties,
+  type ElementType,
+  type ReactNode,
+} from 'react';
 
 /**
  * Scroll reveal.
  *
- * The previous version had exactly one gesture — 24px up, fade in, 0.7s — and
- * applied it to every block on the site: headings, price cards, bento tiles,
- * photographs, the lot. Nine sections entering identically is not choreography,
- * it is a tic. It also wastes the one thing scroll motion is good for, which is
- * telling you what kind of thing just arrived before you have read it.
- *
- * So there are now three gestures, chosen by what the content IS:
+ * Three gestures, chosen by what the content IS — the variants themselves live
+ * in globals.css under `[data-reveal]`:
  *
  *   rise   Default. A block of text or a card arriving as one object.
  *   mask   A wipe up from the baseline, via clip-path. For headlines only.
@@ -31,119 +24,106 @@ import { EASE_OUT_EXPO } from '@/lib/motion';
  *          frame around it stays put. This is how a picture arrives; sliding
  *          it up the page is how a div arrives.
  *
- * Three guarantees, all carried over or added:
+ * WHY THIS IS CSS AND NOT `motion`
  *
- *   1. CONTENT IS NEVER HIDDEN BEHIND JS. Motion writes the hidden state inline
- *      during SSR, so a failed hydration would otherwise leave a blank page.
- *      The `.no-js [data-reveal]` rule in globals.css uses `!important` — which
- *      beats a non-important inline style — and now releases `clip-path` too,
- *      or a masked headline would stay clipped to nothing. A blank booking page
- *      is a business outage, not a visual bug.
- *   2. Reduced motion is honoured in JS, not just CSS: motion animates via rAF,
- *      so the media query alone cannot stop it.
- *   3. Nothing animates layout. Every variant moves transform, opacity or
+ * It used to be motion. Measured, on a clean production build: `motion` costs
+ * ~49 KB of parser-blocking JavaScript, and because this component appears in
+ * every section of every page — and `ui/Section.tsx` imports it, so even the
+ * legal pages pulled it in through `<Container>` — that 49 KB sat on the
+ * critical path of every route on the site. For an opacity change and a 24px
+ * translate. On South African mobile data that is a real cost, charged to every
+ * visitor, for an effect a CSS transition performs identically and on the
+ * compositor.
+ *
+ * Pages that genuinely need motion (the hero parallax, the pinned tier
+ * comparison, the gallery lightbox) still load it. The pages that only ever
+ * wanted a fade no longer do: /branches and /book drop it entirely.
+ *
+ * FOUR GUARANTEES, ALL STRONGER THAN BEFORE
+ *
+ *   1. CONTENT IS NEVER HIDDEN BEHIND JS. The `.no-js [data-reveal]` rule in
+ *      globals.css uses `!important` and releases opacity, transform, filter
+ *      and clip-path. A blank booking page is a business outage, not a visual
+ *      bug.
+ *   2. NO HYDRATION HAZARD. The hidden state is a stylesheet rule, not an
+ *      inline style written during SSR, so there is nothing for the server and
+ *      the client to disagree about. The previous version had to derive its
+ *      reduced-motion variants from the animated ones specifically to keep the
+ *      two byte-identical; that entire class of bug is now unreachable.
+ *   3. REDUCED MOTION IS HONOURED IN CSS. The `prefers-reduced-motion` block in
+ *      globals.css forces every `[data-reveal]` visible. No JS branch, no media
+ *      query read during render, and it applies before hydration rather than
+ *      after it.
+ *   4. NOTHING ANIMATES LAYOUT. Every variant moves opacity, transform or
  *      clip-path only, so a reveal can never reflow the page under the reader.
  *
- * This drops the <InView> primitive it used to wrap. InView owned the animated
- * element, which forced the className onto an inner div — fine for a fade,
- * fatal for `frame`, where the scaling element and the element that clips it
- * have to be the same box.
+ * ONE OBSERVER, NOT THIRTY-SIX. The home page has 36 reveals and the old
+ * version created an IntersectionObserver per component through `useInView`.
+ * They share one here, created lazily on first use.
  */
 
 export type RevealVariant = 'rise' | 'mask' | 'frame';
 
-const VARIANTS: Record<RevealVariant, Variants> = {
-  rise: {
-    hidden: { opacity: 0, y: 24 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease: EASE_OUT_EXPO } },
-  },
+let sharedObserver: IntersectionObserver | null = null;
 
-  /**
-   * Negative insets on the horizontal and top edges so the rectangle sits
-   * slightly outside the border box: an `inset(0 0 100% 0)` clipped exactly to
-   * the box shaves the overshoot on rounded glyphs and any descender that pokes
-   * below the baseline. The bottom edge is the one doing the work.
-   */
-  mask: {
-    hidden: {
-      opacity: 0,
-      y: 14,
-      clipPath: 'inset(-0.25em -0.12em 100% -0.12em)',
-    },
-    visible: {
-      opacity: 1,
-      y: 0,
-      clipPath: 'inset(-0.25em -0.12em -0.25em -0.12em)',
-      transition: { duration: 0.9, ease: EASE_OUT_EXPO },
-    },
-  },
+function getObserver(): IntersectionObserver | null {
+  if (typeof IntersectionObserver === 'undefined') return null;
+  sharedObserver ??= new IntersectionObserver(
+    (entries, observer) => {
+      for (const entry of entries) {
+        /* `isIntersecting` alone is not enough, and the failure is invisible
+           until someone flicks.
 
-  /** Pair with `overflow-hidden` on this element, or the scale does nothing. */
-  frame: {
-    hidden: { opacity: 0, scale: 1.05 },
-    visible: {
-      opacity: 1,
-      scale: 1,
-      transition: { duration: 0.9, ease: EASE_OUT_EXPO },
-    },
-  },
-};
+           An IntersectionObserver computes intersection at DELIVERY time, not
+           continuously. Scroll fast enough and an element can enter and leave
+           the viewport between two delivery cycles — the observer then reports
+           it once, as NOT intersecting, and a block the reader has already
+           scrolled past stays at opacity 0 for the rest of the visit. Measured
+           here at 10,000px/s: 24 of 33 reveals on the home page never fired.
+           A hard flick on a phone is well within that range.
 
-/** A staggering container holds no styles of its own; it only schedules children. */
-function containerVariants(stagger: number, delay: number): Variants {
-  return {
-    hidden: {},
-    visible: {
-      transition: {
-        staggerChildren: stagger / 1000,
-        delayChildren: delay / 1000,
-      },
+           So: also release anything the viewport has already passed. A negative
+           `top` means the element is above the fold line — whether we saw it
+           arrive or not, the reader has, and hiding it now would be a bug they
+           can see rather than an animation they cannot. */
+        if (!entry.isIntersecting && entry.boundingClientRect.top >= 0) continue;
+        // The attribute is the trigger; globals.css owns what it looks like.
+        (entry.target as HTMLElement).setAttribute('data-shown', '');
+        // Once only. An element that has arrived never needs watching again.
+        observer.unobserve(entry.target);
+      }
     },
-  };
+    {
+      // Fire once the block is properly into the viewport rather than the
+      // instant its first pixel appears, so the motion is something you watch
+      // happen instead of something already finished when you get there.
+      rootMargin: '0px 0px -15% 0px',
+    }
+  );
+  return sharedObserver;
 }
 
-/**
- * The reduced-motion variants: identical end state, reached in zero seconds.
- *
- * The obvious implementation is `if (reduced) return <plain tag>`, and it is
- * what this file used to do. It is wrong on a server-rendered page, and subtly
- * so: the SERVER cannot know the visitor's motion preference — there is no
- * media query to read — so `useReducedMotion()` returns false during SSR and
- * true on the first client render for anyone who has the setting on. Two
- * different trees, and React throws a hydration error and regenerates the whole
- * subtree. It only ever fires for the people who asked for less movement, which
- * is why it survives so long unnoticed.
- *
- * Keeping the element identical and swapping only the TRANSITION means server
- * and client always agree on the markup. Reduced motion then means the content
- * arrives instantly rather than not arriving at all.
- *
- * The `hidden` state must be IDENTICAL to the animated set's, which is why this
- * is derived from it rather than written out. Motion serialises `hidden` as an
- * inline style during SSR, so if the reduced set started from a different
- * position the server would emit `clip-path: inset(...)` for the mask variant
- * and the client would emit nothing — trading a text mismatch for an attribute
- * one. Only the transition may differ, because transitions exist only on the
- * client.
- */
-function instantOf(variant: RevealVariant): Variants {
-  return {
-    hidden: VARIANTS[variant].hidden,
-    visible: { ...(VARIANTS[variant].visible as object), transition: { duration: 0 } },
-  };
+function useRevealTrigger<T extends HTMLElement>() {
+  const ref = useRef<T>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    const observer = getObserver();
+    if (!observer) {
+      // No IntersectionObserver at all. Show the content rather than leave it
+      // at opacity 0 — the reveal is decoration, the content is the product.
+      el.setAttribute('data-shown', '');
+      return;
+    }
+
+    observer.observe(el);
+    return () => observer.unobserve(el);
+  }, []);
+
+  return ref;
 }
-
-const INSTANT: Record<RevealVariant, Variants> = {
-  rise: instantOf('rise'),
-  mask: instantOf('mask'),
-  frame: instantOf('frame'),
-};
-
-/** The staggering-container equivalent: same empty hidden state, no schedule. */
-const INSTANT_CONTAINER: Variants = {
-  hidden: {},
-  visible: { transition: { duration: 0, staggerChildren: 0, delayChildren: 0 } },
-};
 
 export function Reveal({
   children,
@@ -164,46 +144,39 @@ export function Reveal({
   staggerChildren?: boolean;
   variant?: RevealVariant;
 }) {
-  const reduced = useReducedMotion();
-  const ref = useRef<HTMLElement>(null);
-  // `-15%` bottom margin: fire once the block is properly into the viewport
-  // rather than the instant its first pixel appears, so the motion is something
-  // you watch happen instead of something already finished when you get there.
-  const inView = useInView(ref, { once: true, margin: '0px 0px -15% 0px' });
+  const ref = useRevealTrigger<HTMLElement>();
 
-  const MotionComponent = createMotion(as);
+  /* A staggering group carries no visual state of its own — it is the thing the
+     observer watches, and the schedule its children read. The per-child offset
+     is done with `:nth-child` in globals.css rather than an index prop, so call
+     sites stay a plain `.map()` and nothing has to thread a counter through. */
+  const style = staggerChildren
+    ? ({
+        '--reveal-stagger': `${stagger}ms`,
+        '--reveal-delay-base': `${delay}ms`,
+      } as CSSProperties)
+    : delay
+      ? ({ '--reveal-delay': `${delay}ms` } as CSSProperties)
+      : undefined;
 
-  return (
-    <MotionComponent
-      ref={ref}
-      className={className}
-      data-reveal=""
-      initial="hidden"
-      // Reduced motion goes straight to `visible` rather than waiting to be
-      // scrolled into view: a section that only appears once you reach it is
-      // scroll-triggered motion by another name.
-      animate={reduced || inView ? 'visible' : 'hidden'}
-      variants={
-        staggerChildren
-          ? reduced
-            ? INSTANT_CONTAINER
-            : containerVariants(stagger, delay)
-          : reduced
-            ? INSTANT[variant]
-            : VARIANTS[variant]
-      }
-      // A non-staggering Reveal with an explicit delay still needs one.
-      transition={staggerChildren || reduced ? undefined : { delay: delay / 1000 }}
-    >
-      {children}
-    </MotionComponent>
+  return createElement(
+    as,
+    {
+      ref,
+      className,
+      style,
+      ...(staggerChildren ? { 'data-reveal-group': '' } : { 'data-reveal': variant }),
+    },
+    children
   );
 }
 
 /**
- * A direct child of a staggering <Reveal>. Inherits the `hidden`/`visible`
- * label from the container through motion's variant propagation, so the
- * stagger schedule is driven entirely by the parent.
+ * A direct child of a staggering <Reveal>.
+ *
+ * It carries no trigger of its own: the group is what the observer watches, and
+ * `[data-reveal-group][data-shown] [data-reveal]` in globals.css releases the
+ * whole set together, offset per child.
  */
 export function RevealItem({
   children,
@@ -216,16 +189,5 @@ export function RevealItem({
   as?: ElementType;
   variant?: RevealVariant;
 }) {
-  const reduced = useReducedMotion();
-  const MotionComponent = createMotion(as);
-
-  return (
-    <MotionComponent
-      className={className}
-      variants={reduced ? INSTANT[variant] : VARIANTS[variant]}
-      data-reveal=""
-    >
-      {children}
-    </MotionComponent>
-  );
+  return createElement(as, { className, 'data-reveal': variant }, children);
 }

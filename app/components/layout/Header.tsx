@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X, Star, Phone, MapPin } from "lucide-react";
@@ -8,7 +9,18 @@ import { cn } from "@/lib/utils";
 import { site, nav } from "@/content/site";
 import { branches } from "@/content/branches";
 import { BookButton } from "@/components/ui/Button";
-import { ScrollProgress } from "@/components/layout/ScrollProgress";
+/* Loaded after hydration, not with it.
+ *
+ * ScrollProgress is the last thing in the layout that imports `motion`, and the
+ * layout is on every route — so a 1px decorative hairline was putting ~49 KB of
+ * animation library on the critical path of /branches, /book and both legal
+ * pages, none of which animate anything else. `ssr: false` moves it to its own
+ * chunk fetched after the page is interactive. Nobody can perceive a progress
+ * bar arriving a frame late; everybody pays for it arriving on time. */
+const ScrollProgress = dynamic(
+  () => import("@/components/layout/ScrollProgress").then((m) => m.ScrollProgress),
+  { ssr: false }
+);
 
 /**
  * Transparent over the hero, solid once scrolled. The BOOK button is present at

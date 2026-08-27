@@ -1,10 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import Image from "next/image";
 import { useRef } from "react";
 import { motion, useScroll, useTransform } from "motion/react";
-import { ArrowDown, Star, MapPin } from "lucide-react";
+import { Star, MapPin } from "lucide-react";
 import { site } from "@/content/site";
 import { branches } from "@/content/branches";
 import { heroVideo } from "@/content/gallery";
@@ -184,20 +183,15 @@ export function Hero() {
             </span>
           ) : null}
 
+          {/* "Our story" used to sit here as a third link. The first viewport was
+              offering five destinations at once — Book, Find your branch, Our
+              story, the price anchor, and Book Now in the header — and the one
+              with the least commercial intent was competing with the two that
+              have the most. The story is three sections down the same scroll and
+              in the nav; nobody arrives at a barber's website to read it first. */}
           <span className="text-bone-dim">
             Cuts from <strong className="text-bone">{formatZar(lowestPrice)}</strong>
           </span>
-
-          <Link
-            href="/#story"
-            className="group flex items-center gap-1.5 text-bone-faint transition-colors hover:text-bone"
-          >
-            Our story
-            <ArrowDown
-              aria-hidden
-              className="h-3.5 w-3.5 transition-transform duration-300 ease-[var(--ease-out-expo)] group-hover:translate-y-0.5"
-            />
-          </Link>
         </div>
       </motion.div>
     </section>

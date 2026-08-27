@@ -19,15 +19,31 @@ import { useHydrated } from "@/hooks/useHydrated";
 /**
  * Classic vs Premier, as a pinned scroll comparison.
  *
- * The Services grid above answers "what does it cost". It cannot answer "which
- * one is for me", because the difference between the tiers is not really price
- * — it is walk-in versus appointment, and how long you are in the chair. That
- * distinction is the core of Barber Club's offer and the current site never
- * explains it anywhere; it just lists two menus on two unlinked pages.
+ * The Services grid above answers "what does it cost". This section answers
+ * "which one is for me" — a different question, and the one the current site
+ * never answers anywhere, because it just lists two menus on two unlinked pages.
  *
- * Pinning the left column and swapping the right as you scroll gives each tier a
- * full screen of attention without making the visitor click anything, and the
- * comparison lands because the framing never moves.
+ * IT USED TO ANSWER THE FIRST QUESTION TWICE. The right-hand panel was a
+ * five-row price list: the same services, at the same prices, as the cards two
+ * screens above and the full menu one click away. Three statements of the same
+ * numbers on one journey is not emphasis, it is a page that has lost track of
+ * what each section is for — and it left the actual difference between the
+ * tiers, which is how you get a chair rather than what it costs, unstated.
+ *
+ * So the panel is now a comparison: four questions, answered differently per
+ * tier. Every answer is derived from content/services.ts rather than written
+ * down here, so the menu and this section cannot drift apart.
+ *
+ * THE LABELS HOLD STILL AND ONLY THE ANSWERS MOVE. That is the whole reason to
+ * pin a section: the reader keeps one frame of reference and watches the values
+ * change inside it. Previously both columns crossfaded at once, which is a slide
+ * transition wearing a comparison's clothes.
+ *
+ * Still missing, and the reason there are four rows rather than five: how long
+ * each tier takes. Time in the chair is the real difference between a Classic
+ * and a Premier cut and the current site publishes no durations at all
+ * (PITCH-NOTES.md §3.3). When they arrive, a "Time in the chair" row drops
+ * straight into COMPARISON below and needs nothing else.
  *
  * LAYOUT: the pinned version is desktop-only, chosen in CSS, not JavaScript.
  *
@@ -49,37 +65,92 @@ import { useHydrated } from "@/hooks/useHydrated";
 
 const TIERS: Tier[] = ["classic", "premier"];
 
-/** The handful of services worth showing per tier — the ones people book. */
-const SHOWCASE = [
-  "the-godfather-cut",
-  "the-club-cut",
-  "blade-fade-cut",
-  "cut-wash-and-style",
-  "gents-cut",
-  "hot-towel-shave",
-];
-
-function showcaseFor(tier: Tier) {
-  return SHOWCASE.map((slug) => services.find((s) => s.slug === slug))
-    .filter((s): s is NonNullable<typeof s> => Boolean(s))
-    .filter((s) => priceFor(s, tier) !== null)
-    .slice(0, 5);
-}
-
 /**
- * Price range for a tier, computed over the services actually shown in the panel
- * — not the whole menu.
+ * What a haircut costs in a tier — computed over the `cuts` category only.
  *
- * Over the whole menu the Classic range would read "R70 to R290", because R70 is
- * a nose wax. Technically true, and misleading as a headline for a haircut.
- * Deriving it from the showcase keeps the number consistent with the list
- * sitting next to it.
+ * Over the whole menu Classic would read "R70 to R290", because R70 is a nose
+ * wax. Technically true, and a misleading answer to "what does a haircut cost".
+ * Restricting it to cuts is both accurate and self-maintaining: add a cut to
+ * content/services.ts and this moves on its own.
  */
-function priceRange(tier: Tier): { low: number; high: number } {
-  const prices = showcaseFor(tier)
+function cutRange(tier: Tier): { low: number; high: number } {
+  const prices = services
+    .filter((s) => s.category === "cuts")
     .map((s) => priceFor(s, tier))
     .filter((p): p is number => p !== null);
   return { low: Math.min(...prices), high: Math.max(...prices) };
+}
+
+/** How many services you can actually order in a tier. */
+function menuSize(tier: Tier): number {
+  return services.filter((s) => priceFor(s, tier) !== null).length;
+}
+
+/** Services one tier has and the other does not — today, The Godfather Cut. */
+function exclusiveTo(tier: Tier): string[] {
+  const other: Tier = tier === "classic" ? "premier" : "classic";
+  return services
+    .filter((s) => priceFor(s, tier) !== null && priceFor(s, other) === null)
+    .map((s) => s.name);
+}
+
+interface ComparisonRow {
+  label: string;
+  value: Record<Tier, string>;
+}
+
+/**
+ * The four things that decide which chair someone sits in.
+ *
+ * Two are computed from the real menu; two are the brand's own positioning put
+ * into plain language ("without the need for an appointment… at an unbeatable
+ * price" / "for those who value the complete grooming experience"). Nothing here
+ * asserts anything Barber Club has not already asserted itself.
+ */
+function comparisonRows(): ComparisonRow[] {
+  const classicCuts = cutRange("classic");
+  const premierCuts = cutRange("premier");
+  const premierOnly = exclusiveTo("premier");
+
+  return [
+    {
+      label: "Getting a chair",
+      value: {
+        classic: "Walk in. No appointment, no waiting list — whenever suits you.",
+        premier: "By appointment. The chair is held, so you sit down at your time.",
+      },
+    },
+    {
+      label: "A haircut costs",
+      value: {
+        classic: `${formatZar(classicCuts.low)} to ${formatZar(classicCuts.high)}`,
+        premier: `${formatZar(premierCuts.low)} to ${formatZar(premierCuts.high)}`,
+      },
+    },
+    {
+      label: "On the menu",
+      value: {
+        classic: `${menuSize("classic")} services, every one of them walk-in.`,
+        premier:
+          premierOnly.length > 0
+            ? `${menuSize("premier")} services — including ${listOf(premierOnly)}, which only Premier does.`
+            : `${menuSize("premier")} services.`,
+      },
+    },
+    {
+      label: "Pick this when",
+      value: {
+        classic: "The cut needs to happen today and you would rather not plan it.",
+        premier: "You want the whole thing, unhurried, and finished properly.",
+      },
+    },
+  ];
+}
+
+/** "A", "A and B", "A, B and C" — so the sentence survives a second exclusive. */
+function listOf(names: string[]): string {
+  if (names.length <= 1) return names[0] ?? "";
+  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
 }
 
 export function TierScroll() {
@@ -138,6 +209,10 @@ export function TierScroll() {
   const hydrated = useHydrated();
   const pinned = !(hydrated && reduced);
 
+  // Derived from the menu, so it is the same on the server and the client and
+  // costs one pass over eleven services. No memo needed for that.
+  const rows = comparisonRows();
+
   return (
     <section
       id="tiers"
@@ -159,10 +234,33 @@ export function TierScroll() {
           <Heading />
           <div className="mt-12 grid gap-6 md:grid-cols-2">
             {TIERS.map((tier) => (
-              <div key={tier} className="rounded border border-line bg-ink-raised p-6 sm:p-8">
-                <TierCopy tier={tier} />
-                <div className="mt-8">
-                  <TierMenu tier={tier} />
+              <div
+                key={tier}
+                className="flex flex-col rounded border border-line bg-ink-raised p-6 sm:p-8"
+              >
+                {/* Facts first, ask last. The pinned layout can afford to lead
+                    with the tier's own description because the comparison sits
+                    beside it; stacked, that description is four lines of
+                    positioning between the reader and the four answers they came
+                    for. `mt-auto` on the CTA also lands both buttons on the same
+                    line in the 768–1023px band where these cards sit side by
+                    side, which is the only width at which they are compared
+                    rather than read one after the other. */}
+                <TierCopy tier={tier} cta={false} />
+                <dl className="mt-8 divide-y divide-line border-t border-line">
+                  {rows.map((row) => (
+                    <div key={row.label} className="py-4">
+                      <dt className="text-xs uppercase tracking-[0.2em] text-brass-dim">
+                        {row.label}
+                      </dt>
+                      <dd className="mt-1.5 text-sm leading-relaxed text-bone">
+                        {row.value[tier]}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+                <div className="mt-8 pt-2 sm:mt-auto">
+                  <TierCta tier={tier} />
                 </div>
               </div>
             ))}
@@ -217,22 +315,39 @@ export function TierScroll() {
                 </div>
               </div>
 
+              {/* The card, its border and all four labels are STATIC. Only the
+                  answers crossfade — which is the entire argument for pinning a
+                  section rather than stacking two cards: one frame of reference,
+                  held still, with the values changing inside it.
+
+                  Each answer cell stacks both tiers in the same grid cell, so
+                  the row is always as tall as its longer answer and nothing
+                  reflows as you scroll through the transition. */}
               <div className="lg:col-span-7">
-                <div className="grid">
-                  {TIERS.map((tier, i) => (
-                    <motion.div
-                      key={tier}
-                      className={cn(
-                        "col-start-1 row-start-1 rounded-lg border border-line bg-ink-raised p-8 lg:p-10",
-                        i !== index && "pointer-events-none"
-                      )}
-                      style={{ opacity: opacity[i], y: yShift[i] }}
-                      aria-hidden={i !== index}
+                <dl className="divide-y divide-line rounded-lg border border-line bg-ink-raised p-8 lg:p-10">
+                  {rows.map((row) => (
+                    <div
+                      key={row.label}
+                      className="grid gap-x-8 gap-y-1.5 py-5 first:pt-0 last:pb-0 xl:grid-cols-[11rem_1fr]"
                     >
-                      <TierMenu tier={tier} />
-                    </motion.div>
+                      <dt className="text-xs uppercase tracking-[0.2em] text-brass-dim xl:pt-1">
+                        {row.label}
+                      </dt>
+                      <dd className="grid">
+                        {TIERS.map((tier, i) => (
+                          <motion.span
+                            key={tier}
+                            className="col-start-1 row-start-1 text-lg leading-snug text-bone"
+                            style={{ opacity: opacity[i], y: yShift[i] }}
+                            aria-hidden={i !== index}
+                          >
+                            {row.value[tier]}
+                          </motion.span>
+                        ))}
+                      </dd>
+                    </div>
                   ))}
-                </div>
+                </dl>
               </div>
             </div>
           </Container>
@@ -250,10 +365,9 @@ function Heading() {
   );
 }
 
-/** Tier name, how it works, price range and the matching call to action. */
-function TierCopy({ tier }: { tier: Tier }) {
+/** Tier name, how it works, and — unless the caller places it itself — the CTA. */
+function TierCopy({ tier, cta = true }: { tier: Tier; cta?: boolean }) {
   const info = tierInfo[tier];
-  const { low, high } = priceRange(tier);
   const Icon = tier === "classic" ? DoorOpen : CalendarCheck;
 
   return (
@@ -269,54 +383,29 @@ function TierCopy({ tier }: { tier: Tier }) {
 
       <p className="mt-4 max-w-md text-sm leading-relaxed text-bone-dim">{info.description}</p>
 
-      <p className="mt-5 text-sm text-bone-dim">
-        Cuts and shaves <span className="tnum text-bone">{formatZar(low)}</span> to{" "}
-        <span className="tnum text-bone">{formatZar(high)}</span>
-      </p>
+      {/* The price range used to live here as well. It is row two of the
+          comparison now — stating it in both columns of the same viewport was
+          the smaller version of the duplication this section was fixing. */}
 
-      <div className="mt-7">
-        {tier === "classic" ? (
-          <ButtonLink href="/branches" variant="outline" size="md">
-            Find your nearest branch
-            <ArrowRight aria-hidden className="h-4 w-4" />
-          </ButtonLink>
-        ) : (
-          <BookButton location="tier_card" size="md">
-            Book Premier
-          </BookButton>
-        )}
-      </div>
+      {cta ? (
+        <div className="mt-7">
+          <TierCta tier={tier} />
+        </div>
+      ) : null}
     </div>
   );
 }
 
-/** The tier's signature services with their real published prices. */
-function TierMenu({ tier }: { tier: Tier }) {
-  const list = showcaseFor(tier);
-
-  return (
-    <>
-      <p className="mb-5 text-xs uppercase tracking-[0.2em] text-brass-dim">
-        {tierInfo[tier].label} menu
-      </p>
-      <ul className="divide-y divide-line">
-        {list.map((service) => {
-          const price = priceFor(service, tier);
-          return (
-            <li key={service.slug} className="flex items-baseline justify-between gap-6 py-4">
-              <span>
-                <span className="block font-display text-xl tracking-wide">{service.name}</span>
-                <span className="mt-1 block max-w-sm text-xs leading-snug text-bone-faint">
-                  {service.blurb}
-                </span>
-              </span>
-              <span className="tnum shrink-0 text-lg text-brass">
-                {price === null ? "—" : formatZar(price)}
-              </span>
-            </li>
-          );
-        })}
-      </ul>
-    </>
+/** Walk in, or book. The two tiers convert through different actions. */
+function TierCta({ tier }: { tier: Tier }) {
+  return tier === "classic" ? (
+    <ButtonLink href="/branches" variant="outline" size="md">
+      Find your nearest branch
+      <ArrowRight aria-hidden className="h-4 w-4" />
+    </ButtonLink>
+  ) : (
+    <BookButton location="tier_card" size="md">
+      Book Premier
+    </BookButton>
   );
 }

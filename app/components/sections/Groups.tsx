@@ -103,14 +103,16 @@ function PackageCard({ pkg }: { pkg: GroupPackage }) {
 
       <h3 className="font-display text-3xl tracking-wide">{pkg.name}</h3>
 
-      <p className="mt-2 text-brass">
+      <p className="mt-2 text-bone">
         {pkg.pricePerPerson !== null ? (
           <>
-            <span className="text-2xl">{formatZar(pkg.pricePerPerson)}</span>
+            <span className="tnum font-display text-3xl leading-none">
+              {formatZar(pkg.pricePerPerson)}
+            </span>
             <span className="text-sm text-bone-dim"> per person</span>
           </>
         ) : (
-          <span className="text-xl">{pkg.priceNote}</span>
+          <span className="font-display text-2xl leading-none">{pkg.priceNote}</span>
         )}
       </p>
 

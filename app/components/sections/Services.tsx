@@ -126,7 +126,7 @@ function ServiceCard({ service, tier }: { service: Service; tier: Tier }) {
     <article className="group flex h-full flex-col rounded border border-line bg-ink-raised p-6 transition-colors duration-300 hover:border-bone/25">
       <div className="flex items-start justify-between gap-4">
         <h3 className="font-display text-2xl leading-none tracking-wide">{service.name}</h3>
-        <Price value={price} className="shrink-0 font-display text-2xl leading-none text-brass" />
+        <Price value={price} className="tnum shrink-0 font-display text-2xl leading-none text-bone" />
       </div>
 
       <p className="mt-4 flex-1 text-sm leading-relaxed text-bone-dim">{service.blurb}</p>

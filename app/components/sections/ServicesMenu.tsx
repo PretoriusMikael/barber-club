@@ -56,7 +56,7 @@ export function ServicesMenu() {
                       </p>
                     </div>
                     <div className="flex shrink-0 items-center gap-5">
-                      <Price value={price} className="text-lg text-brass" />
+                      <Price value={price} className="tnum font-display text-2xl leading-none text-bone" />
                       <BookButton
                         location="service_card"
                         serviceId={service.bookingId}

@@ -16,8 +16,20 @@
   --color-bone-faint: #8a857c;
 
   /* --- Accent ------------------------------------------------------------
-     brass is RESERVED for the primary booking CTA. Nothing else may use it,
-     or the eye stops treating it as "the button that books". */
+     `brass` is RESERVED for the primary booking CTA. Nothing else may use it,
+     or the eye stops treating it as "the button that books".
+
+     PRICES ARE NOT AN EXCEPTION, and they used to be. Every price on the site
+     was set in brass — the service cards, the full menu, the group packages —
+     which meant the loudest colour on a near-black page appeared eleven times
+     on /services before the eye ever reached a button. Prices now take their
+     weight from SIZE and FACE (display, tabular) rather than from colour, and
+     read as bone like everything else that is information rather than action.
+     The button is the only brass object in most viewports again.
+
+     `brass-dim` and `brass-rule` are a different job and stay: they are the
+     muted label and hairline tones, quiet enough that they never compete with
+     a filled brass button. */
   --color-brass: #c8a35a;
   --color-brass-hi: #e2c184;
   /* Was #8e733e. That measured 4.09:1 on ink-raised and 4.38:1 on ink — under
@@ -198,19 +210,116 @@
 }
 
 @layer components {
+  /* ------------------------------------------------------------------
+     SCROLL REVEAL — the whole system. See components/ui/Reveal.tsx, which
+     supplies only the trigger: one shared IntersectionObserver that stamps
+     `data-shown` on a block when it comes into view.
+
+     This used to be `motion`, and moving it here bought back ~49 KB of
+     parser-blocking JavaScript on every route — the component appears in every
+     section of every page, and ui/Section.tsx imports it, so even the legal
+     pages were pulling the animation library in through <Container>.
+
+     Everything animated below is opacity, transform or clip-path, so it runs on
+     the compositor and can never reflow the page under the reader.
+     ------------------------------------------------------------------ */
+  /* THE ATTRIBUTE MEANS TWO THINGS, and the difference is the value.
+
+       data-reveal            "this content is protected" — it opts into the
+                              `.no-js` and reduced-motion `!important` rules at
+                              the foot of this block and nothing else. The hero
+                              headline uses it that way: it animates itself via
+                              TextEffect and must NOT be hidden by the rules
+                              below, or the largest text on the site starts at
+                              opacity 0 with nothing to release it.
+       data-reveal="rise|…"   "and it arrives like this" — the hidden state and
+                              the transition, released by `data-shown`.
+
+     Hence the valued selectors here rather than a bare `[data-reveal]`. */
+  [data-reveal="rise"],
+  [data-reveal="mask"],
+  [data-reveal="frame"] {
+    --reveal-duration: 700ms;
+    opacity: 0;
+    transition-property: opacity, transform, clip-path;
+    transition-duration: var(--reveal-duration);
+    transition-timing-function: var(--ease-out-expo);
+    transition-delay: var(--reveal-delay, 0ms);
+  }
+
+  /* A block of text or a card, arriving as one object. */
+  [data-reveal="rise"] {
+    transform: translateY(24px);
+  }
+
+  /* Headlines only. A wipe up from the baseline: type revealed by an edge
+     moving across it reads as SET rather than as floating in.
+
+     The negative insets on the horizontal and top edges put the rectangle
+     slightly outside the border box — clipped exactly to the box, an
+     `inset(0 0 100% 0)` shaves the overshoot on rounded glyphs and any
+     descender that pokes below the baseline. The bottom edge does the work. */
+  [data-reveal="mask"] {
+    --reveal-duration: 900ms;
+    transform: translateY(14px);
+    clip-path: inset(-0.25em -0.12em 100% -0.12em);
+  }
+
+  /* A photograph settling into its crop. Pair with `overflow-hidden` on the
+     same element, or the scale does nothing. */
+  [data-reveal="frame"] {
+    --reveal-duration: 900ms;
+    transform: scale(1.05);
+  }
+
+  [data-reveal="rise"][data-shown],
+  [data-reveal="mask"][data-shown],
+  [data-reveal="frame"][data-shown],
+  [data-reveal-group][data-shown] [data-reveal="rise"],
+  [data-reveal-group][data-shown] [data-reveal="mask"],
+  [data-reveal-group][data-shown] [data-reveal="frame"] {
+    opacity: 1;
+    transform: none;
+  }
+
+  /* clip-path is released only where it was applied: handing every variant an
+     `inset()` would silently clip cards and photographs to their border box. */
+  [data-reveal="mask"][data-shown],
+  [data-reveal-group][data-shown] [data-reveal="mask"] {
+    clip-path: inset(-0.25em -0.12em -0.25em -0.12em);
+  }
+
+  /* Stagger, as :nth-child rather than an index prop — so a call site stays a
+     plain `.map()` with nothing threading a counter through it. Twelve steps
+     covers every grid on the site (the largest is the six-tile story bento);
+     a thirteenth child simply arrives with the twelfth. */
+  [data-reveal-group] > :nth-child(1) { --reveal-delay: var(--reveal-delay-base, 0ms); }
+  [data-reveal-group] > :nth-child(2) { --reveal-delay: calc(var(--reveal-delay-base, 0ms) + var(--reveal-stagger, 0ms) * 1); }
+  [data-reveal-group] > :nth-child(3) { --reveal-delay: calc(var(--reveal-delay-base, 0ms) + var(--reveal-stagger, 0ms) * 2); }
+  [data-reveal-group] > :nth-child(4) { --reveal-delay: calc(var(--reveal-delay-base, 0ms) + var(--reveal-stagger, 0ms) * 3); }
+  [data-reveal-group] > :nth-child(5) { --reveal-delay: calc(var(--reveal-delay-base, 0ms) + var(--reveal-stagger, 0ms) * 4); }
+  [data-reveal-group] > :nth-child(6) { --reveal-delay: calc(var(--reveal-delay-base, 0ms) + var(--reveal-stagger, 0ms) * 5); }
+  [data-reveal-group] > :nth-child(7) { --reveal-delay: calc(var(--reveal-delay-base, 0ms) + var(--reveal-stagger, 0ms) * 6); }
+  [data-reveal-group] > :nth-child(8) { --reveal-delay: calc(var(--reveal-delay-base, 0ms) + var(--reveal-stagger, 0ms) * 7); }
+  [data-reveal-group] > :nth-child(9) { --reveal-delay: calc(var(--reveal-delay-base, 0ms) + var(--reveal-stagger, 0ms) * 8); }
+  [data-reveal-group] > :nth-child(10) { --reveal-delay: calc(var(--reveal-delay-base, 0ms) + var(--reveal-stagger, 0ms) * 9); }
+  [data-reveal-group] > :nth-child(11) { --reveal-delay: calc(var(--reveal-delay-base, 0ms) + var(--reveal-stagger, 0ms) * 10); }
+  [data-reveal-group] > :nth-child(n + 12) { --reveal-delay: calc(var(--reveal-delay-base, 0ms) + var(--reveal-stagger, 0ms) * 11); }
+
   /* Scroll-reveal safety net.
-     Motion (see components/ui/Reveal.tsx) writes `opacity: 0` as an INLINE style
-     during SSR, so a failed hydration would otherwise leave a blank page. A CSS
-     rule with `!important` beats a non-important inline style, so this forces
-     every revealed block visible when scripting is unavailable.
+     The hidden state above applies from first paint, so if scripting is
+     unavailable nothing would ever stamp `data-shown` and the page would stay
+     blank. The inline script in layout.tsx drops `no-js` before first paint, so
+     this only ever applies when there is no JS at all — in which case every
+     revealed block must be visible immediately.
      Never hide content behind JS on a conversion path. */
   .no-js [data-reveal],
   .no-js [data-reveal] * {
     opacity: 1 !important;
     transform: none !important;
     filter: none !important;
-    /* The `mask` reveal variant animates clip-path, so the no-JS safety net has
-       to release that too or a headline stays clipped to nothing. */
+    /* The `mask` variant animates clip-path, so the no-JS safety net has to
+       release that too or a headline stays clipped to nothing. */
     clip-path: none !important;
   }
 
@@ -546,8 +655,10 @@
     transition-duration: 0.01ms !important;
   }
 
-  /* Motion animates via rAF, so this media query alone cannot stop it — the
-     real guard is useReducedMotion() in Reveal.tsx. This is belt and braces. */
+  /* THE guard for scroll reveal, not a backstop for one.
+     Reveal.tsx no longer reads a motion preference in JS at all — the hidden
+     state is a stylesheet rule, so releasing it here is both the complete
+     answer and one that applies before hydration rather than after it. */
   [data-reveal],
   [data-reveal] * {
     opacity: 1 !important;

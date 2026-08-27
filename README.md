@@ -294,47 +294,59 @@ advances when you scroll is a trap for anyone who asked for less movement.
 
 ## Measured
 
-Production build (`next build` + `next start`), gzipped:
+Production build (`next build` + `next start`), encoded transfer size, measured over CDP on a
+390px mobile viewport. **Initial JS** is parser-inserted script only — Next's link prefetching
+adds another 40–90 KB per route *after* load, at low priority, and is excluded here because it
+is not on anyone's critical path.
 
-| Route | Initial JS | |
-|---|---|---|
-| `/` | **261 KB** | ⚠️ over |
-| `/services` | **240 KB** | ⚠️ over |
-| `/gallery` | **236 KB** | ⚠️ over |
-| `/groups` | **228 KB** | ⚠️ over |
-| `/branches` | **185 KB** | ✅ |
+| Route | Initial JS | Was | |
+|---|---|---|---|
+| `/legal/*` | **151 KB** | 199 KB | −48 KB |
+| `/book` | **153 KB** | 201 KB | −48 KB |
+| `/branches` | **160 KB** | 207 KB | −47 KB |
+| `/services` | **211 KB** | 213 KB | motion still needed |
+| `/gallery` | **212 KB** | 210 KB | motion still needed |
+| `/` | **232 KB** | 230 KB | motion still needed |
 
 | Other | Target | Result |
 |---|---|---|
-| three.js on first load | none | **not loaded** (225 KB deferred) ✅ |
-| Routes prerendered | — | **23/23 static** ✅ |
+| three.js on first load | none | **not loaded on mobile** (228 KB, desktop only, deferred) ✅ |
+| Routes prerendered | — | **25/25 static** ✅ |
 | ESLint | clean | **clean** ✅ |
 | TypeScript | clean | **clean** ✅ |
 | Invented data in JSON-LD | none | **none** ✅ |
 
-### ⚠️ The animation libraries broke the 200 KB budget
+### Where the bytes actually are
 
-Home went **198 KB → 256 KB**. Attributed precisely: **`motion` is 64 KB gz** across three
-chunks. That is the entire overage — nothing else regressed.
+The instructive number is `/legal/terms`: a page with **no client components of its own** was
+loading 199 KB. Almost none of the weight belongs to any individual page — the home page's own
+client code is about 30 KB on top of a shared floor, and `/branches`'s is about 8 KB. So
+"server-render the branch cards" was investigated and **rejected**: the measurable saving was
+low single-digit KB against a CSS-filtering hack, because `BranchCard` needs the client anyway
+for its live open/closed badge and its click tracking.
 
-This is a genuine conflict, not an oversight. The 200 KB budget was set for a lean brochure
-site on South African mobile data. Adopting a Framer-Motion-based component library puts a
-64 KB animation engine on the critical path of any page that animates above the fold — here,
-the hero headline and the trust-bar marquee. Both goals cannot be met at once.
+The floor was the whole story, and `motion` was ~49 KB of it — on **every** route, because two
+things reached it from the shared layout:
 
-**The lever, if the budget matters more than the motion:** Framer's `LazyMotion` + `m`
-components cut the core to roughly 15 KB and load the feature bundle after first paint. The
-catch is that motion-primitives components import `motion.*` directly, which throws under
-`LazyMotion strict` — so taking it means forking every component to use `m.*`, and re-forking
-on every upstream update.
+1. **`ui/Section.tsx` imports `Reveal`**, so anything using `<Container>` — including both
+   legal pages — pulled the animation library in for a `<div>` with padding.
+2. **`Header` renders `ScrollProgress`**, a 1px decorative hairline, and the header is in the
+   root layout.
 
-Cheaper partial options, in order of value for effort:
+Both are fixed. `Reveal` is now CSS transitions plus one shared IntersectionObserver (see
+`components/ui/Reveal.tsx` and the `[data-reveal]` block in `globals.css`), and
+`ScrollProgress` is `next/dynamic({ ssr: false })`. Pages that genuinely animate — the hero
+parallax, the pinned tier comparison, the gallery lightbox, the price count-up — still load
+motion and always will. Pages that only ever wanted a fade no longer do.
 
-1. Drop `TextEffect` from the hero and the marquee from the trust bar. That pulls motion off
-   the *above-the-fold* path, though it stays in the page bundle.
-2. Defer the gallery lightbox until first click, so the layout-projection engine is never in
-   the first load.
-3. Accept 256 KB on animated routes and keep `/branches`-style pages lean.
+### What is left on the animated routes
+
+Home is 232 KB and the remaining consumers all earn it: hero parallax and the word-by-word
+headline, `TierScroll`'s pinned comparison, the gallery's column parallax and morphing
+lightbox, the trust-bar marquee. If the budget ever has to win outright, the lever is Motion's
+`LazyMotion` + `m` components (~15 KB core, features loaded after first paint) — the catch
+being that motion-primitives components import `motion.*` directly and throw under
+`LazyMotion strict`, so it means forking each one and re-forking on every upstream update.
 
 **Not yet measured:** LCP, INP, CLS — those need a real deployment with real images.
 
