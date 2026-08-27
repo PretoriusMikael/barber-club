@@ -2,8 +2,8 @@ import Image from "next/image";
 import { Instagram } from "lucide-react";
 import { barbers, rosterSupplied, type Barber } from "@/content/barbers";
 import { Section, Container, SectionHeading } from "@/components/ui/Section";
-import { Reveal, RevealItem } from "@/components/ui/Reveal";
 import { AssetFrame } from "@/components/ui/AssetFrame";
+import { Reveal, RevealItem } from "@/components/ui/Reveal";
 import { BookButton } from "@/components/ui/Button";
 import { getBranch } from "@/content/branches";
 import { teamPhoto } from "@/content/photography";
@@ -16,15 +16,22 @@ import { teamPhoto } from "@/content/photography";
  * barberclub.co.za — which names not one barber across all 17 pages, despite
  * selling "a legendary team of experienced barbers".
  *
- * Until a real roster is supplied this renders an honest gap panel rather than
- * invented people. See content/barbers.ts.
+ * Until a real roster is supplied (content/barbers.ts is deliberately empty —
+ * inventing names and quotes for real staff would be both false and unfair to
+ * them) this renders the supplied team photograph and the brand's own claim
+ * about its people. No invented cards, and no production note either: the ask
+ * for the roster belongs in PITCH-NOTES.md, not printed on the customer's
+ * screen.
+ *
+ * The moment `rosterSupplied` flips true, the bookable card grid takes over and
+ * this section becomes the strongest returning-customer CTA on the site.
  */
 export function Team({ full = false }: { full?: boolean }) {
   if (!rosterSupplied) {
     return (
       <Section id="team">
         <Container>
-          <RosterPending />
+          <TeamPhoto />
         </Container>
       </Section>
     );
@@ -94,7 +101,7 @@ function BarberCard({ barber, full }: { barber: Barber; full: boolean }) {
               target="_blank"
               rel="noopener noreferrer"
               aria-label={`${barber.name} on Instagram`}
-              className="flex h-9 w-9 shrink-0 items-center justify-center border border-line text-bone-dim hover:text-bone"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm border border-line text-bone-dim hover:text-bone"
             >
               <Instagram aria-hidden className="h-4 w-4" />
             </a>
@@ -106,79 +113,47 @@ function BarberCard({ barber, full }: { barber: Barber; full: boolean }) {
 }
 
 /**
- * The supplied team photograph, above the gap panel — not instead of it.
+ * The supplied team photograph, carrying the section on its own.
  *
  * A picture of four barbers is a real answer to "who will be cutting my hair",
- * and it was the single biggest thing this page was missing. It is NOT an answer
- * to "which one, and can I book them", which is what the roster is for: the
- * photograph names nobody, places nobody at a branch, and says nothing about
- * what any of them is best at. So it earns the top of this section and the ask
- * underneath it stands unchanged.
+ * and it was the single biggest thing this page was missing. It is not an
+ * answer to "which one, and can I book them" — that is what the roster is for,
+ * and it is the top item on the content list in PITCH-NOTES.md.
  *
- * 950×689 is the largest supplied file and still modest, so it is shown at a
+ * 950x689 is the largest supplied file and still modest, so it is shown at a
  * contained width rather than full-bleed. Pushed edge to edge on a wide monitor
  * it would be upscaled past two times and look it.
+ *
+ * The copy is the brand's own — "a legendary team of experienced barbers" is
+ * published on the current site and is the claim this photograph evidences.
  */
 function TeamPhoto() {
   return (
-    <Reveal variant="frame" className="relative mb-10 overflow-hidden border border-line">
-      <div className="relative aspect-[16/10] w-full sm:aspect-[2/1]">
-        <Image
-          src={teamPhoto.src}
-          alt={teamPhoto.alt}
-          fill
-          unoptimized
-          sizes="(min-width: 1280px) 1152px, 100vw"
-          style={{ objectPosition: teamPhoto.focus }}
-          className="object-cover"
-        />
-        {/* The shop behind them is bright and the page is not. A short scrim at
-            the foot ties the frame into the panel below instead of leaving a
-            hard bright edge against the dark. */}
-        <div
-          aria-hidden
-          className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-ink-raised to-transparent"
-        />
-      </div>
-    </Reveal>
-  );
-}
-
-function RosterPending() {
-  return (
-    <div>
-      <TeamPhoto />
-
-      <div className="border border-dashed border-bone/20 bg-ink-raised p-8 md:p-12">
-        <p className="mb-3 text-xs uppercase tracking-[0.25em] text-brass-dim">
-          Missed opportunity
-        </p>
-        <h2 className="max-w-2xl text-3xl leading-tight md:text-4xl">
-          Your barbers are the brand, and right now not one of them is named.
-        </h2>
-        <div className="mt-6 max-w-2xl space-y-3 text-sm leading-relaxed text-bone-dim">
-        <p>
-          There is a photograph of four of them above, and it is the best thing on
-          this section — but a group shot names nobody. The current site sells
-          &ldquo;a legendary team of experienced barbers&rdquo; across all eleven branches
-          and does not name a single one. No placeholder people are rendered here:
-          inventing names and quotes for real staff would be both false and unfair
-          to them.
-        </p>
-        <p>
-          This is worth fixing before launch. &ldquo;Book with [name]&rdquo; is the strongest CTA a
-          barber site has for returning customers, and a chain this size almost
-          certainly has barbers with personal followings walking in the door.
-        </p>
-        <ol className="ml-4 list-decimal space-y-1.5">
-          <li>Name, home branch, speciality and years behind the chair, per barber.</li>
-          <li>One sentence in their own words — collect it, do not write it for them.</li>
-          <li>A 3:4 portrait at their own station, consistent lighting across branches.</li>
-          <li>
-            A vendor staff id per barber, so the booking deep link pre-selects them.
-          </li>
-        </ol>
+    <div className="grid items-center gap-10 lg:grid-cols-[1.15fr_1fr] lg:gap-14">
+      <Reveal variant="frame" className="relative overflow-hidden rounded-lg border border-line">
+        <div className="relative aspect-[16/10] w-full">
+          <Image
+            src={teamPhoto.src}
+            alt={teamPhoto.alt}
+            fill
+            unoptimized
+            sizes="(min-width: 1024px) 640px, 100vw"
+            style={{ objectPosition: teamPhoto.focus }}
+            className="object-cover"
+          />
         </div>
+      </Reveal>
+
+      <div>
+        <SectionHeading
+          title="A legendary team of experienced barbers."
+          intro="Eleven branches, one standard. Whichever chair you end up in, it is the same training, the same finish and the same amount of time taken over it."
+        />
+        <Reveal delay={220} className="mt-8 flex flex-col gap-3 sm:flex-row">
+          <BookButton location="barber_card" size="lg">
+            Book your chair
+          </BookButton>
+        </Reveal>
       </div>
     </div>
   );

@@ -65,7 +65,7 @@ export function BookingEmbed() {
   if (!hasEmbed) return <NoBookingSystem />;
 
   return (
-    <div ref={containerRef} className="relative min-h-[640px] border border-line bg-ink-raised">
+    <div ref={containerRef} className="relative min-h-[640px] overflow-hidden rounded-lg border border-line bg-ink-raised">
       {!loaded ? (
         <div
           className="absolute inset-0 flex items-center justify-center"
@@ -98,11 +98,15 @@ export function BookingEmbed() {
  * The important part is the top half: a real, working way to book right now.
  * Shipping a "coming soon" box on the one page whose entire job is booking
  * would be worse than the current site, not better.
+ *
+ * When a vendor is contracted, set `booking.embedUrl` in content/site.ts and the
+ * widget above replaces all of this. Nothing else on the site changes: every
+ * CTA already routes through lib/booking.ts.
  */
 function NoBookingSystem() {
   return (
     <div className="space-y-8">
-      <div className="border border-brass/40 bg-brass/5 p-6 md:p-8">
+      <div className="rounded-lg border border-brass/40 bg-brass/5 p-6 md:p-8">
         <h2 className="font-display text-2xl tracking-wide md:text-3xl">
           Right now, booking happens by phone.
         </h2>
@@ -114,69 +118,55 @@ function NoBookingSystem() {
           <a
             href={`tel:${site.phone.e164}`}
             onClick={() => track("phone_click", { location: "book_page" })}
-            className="inline-flex h-12 items-center justify-center gap-2 bg-brass px-6 text-sm font-medium uppercase tracking-wide text-ink hover:bg-brass-hi"
+            className="inline-flex h-12 items-center justify-center gap-2 rounded bg-brass px-6 text-sm font-medium uppercase tracking-wide text-ink hover:bg-brass-hi"
           >
             <Phone aria-hidden className="h-4 w-4" />
             {site.phone.display}
           </a>
           <Link
             href="/branches"
-            className="inline-flex h-12 items-center justify-center border border-bone/25 px-6 text-sm uppercase tracking-wide hover:border-bone/60"
+            className="inline-flex h-12 items-center justify-center rounded border border-bone/25 px-6 text-sm uppercase tracking-wide hover:border-bone/60"
           >
             Branch numbers
           </Link>
         </div>
       </div>
 
-      <div className="border border-dashed border-bone/20 bg-ink-raised p-6 md:p-8">
-        <p className="mb-3 text-xs uppercase tracking-[0.25em] text-brass-dim">
-          Biggest open opportunity
-        </p>
-        <h2 className="text-2xl leading-tight md:text-3xl">
-          Barber Club advertises &ldquo;by appointment only&rdquo; with no way to make an
-          appointment.
-        </h2>
-
-        <div className="mt-5 space-y-4 text-sm leading-relaxed text-bone-dim">
-          <p>
-            Premier is sold on the current site as appointment-only, but the sole
-            mechanism offered anywhere across its 17 pages is a phone number. Every
-            enquiry outside trading hours is lost. For {branches.length} branches, that is
-            a lot of lost chairs.
+      {/* Two ways to sit down, said plainly — because on the one page whose
+          entire job is booking, "which of these applies to me" is the only
+          question left to answer. The vendor scorecard and the case for online
+          booking that used to sit here were written for us, not for a customer;
+          they now live in PITCH-NOTES.md. */}
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="rounded border border-line bg-ink-raised p-6">
+          <p className="text-xs uppercase tracking-[0.25em] text-brass-dim">Classic</p>
+          <h3 className="mt-2 font-display text-2xl tracking-wide">No booking needed.</h3>
+          <p className="mt-3 text-sm leading-relaxed text-bone-dim">
+            Walk in whenever suits you. Find the branch nearest you, check it is open,
+            and turn up.
           </p>
+          <Link
+            href="/branches"
+            className="mt-4 inline-flex items-center gap-1.5 rounded-sm text-xs uppercase tracking-wider text-bone-dim transition-colors hover:text-brass"
+          >
+            See all {branches.length} branches
+          </Link>
+        </div>
 
-          <div>
-            <p className="mb-2 font-medium text-bone">Score vendors against these:</p>
-            <ul className="ml-4 list-disc space-y-1">
-              <li>
-                <strong className="text-bone">Multi-location support</strong> — non-negotiable
-                at {branches.length} branches; customers must not book the wrong town
-              </li>
-              <li>Confirmed availability and support in South Africa</li>
-              <li>
-                Staff-level deep links (<code>?employee=…</code>) — powers &ldquo;Book with
-                [name]&rdquo;, the best CTA for returning customers
-              </li>
-              <li>ZAR support and a local gateway for deposits (Payfast, Yoco, Peach)</li>
-              <li>Automated WhatsApp or SMS reminders — the biggest no-show lever there is</li>
-              <li>Reserve with Google — captures demand that never reaches the website</li>
-              <li>A conversion webhook or postMessage, so bookings land in GA4</li>
-            </ul>
-          </div>
-
-          <p className="text-bone-faint">
-            Shortlist: Fresha, Setmore, Acuity, Timely, Booksy (verify SA coverage). Squire
-            is US-focused and likely a poor fit. Confirm current regional availability and
-            pricing with each vendor directly.
+        <div className="rounded border border-line bg-ink-raised p-6">
+          <p className="text-xs uppercase tracking-[0.25em] text-brass-dim">Premier</p>
+          <h3 className="mt-2 font-display text-2xl tracking-wide">By appointment.</h3>
+          <p className="mt-3 text-sm leading-relaxed text-bone-dim">
+            Call the branch and they will put you in the diary. Every branch page carries
+            its own number and its own hours.
           </p>
-          <p className="text-bone-faint">
-            Once chosen, set <code className="text-bone">booking.vendor</code>,{" "}
-            <code className="text-bone">baseUrl</code> and{" "}
-            <code className="text-bone">embedUrl</code> in{" "}
-            <code className="text-bone">app/content/site.ts</code>. Every CTA on the site
-            routes through <code className="text-bone">lib/booking.ts</code>, so nothing
-            else changes.
-          </p>
+          <a
+            href={`tel:${site.phone.e164}`}
+            onClick={() => track("phone_click", { location: "book_page" })}
+            className="mt-4 inline-flex items-center gap-1.5 rounded-sm text-xs uppercase tracking-wider text-bone-dim transition-colors hover:text-brass"
+          >
+            {site.phone.display}
+          </a>
         </div>
       </div>
     </div>

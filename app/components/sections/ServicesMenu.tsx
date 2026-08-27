@@ -56,7 +56,7 @@ export function ServicesMenu() {
                       </p>
                     </div>
                     <div className="flex shrink-0 items-center gap-5">
-                      <Price value={price} className="text-lg text-brass" />
+                      <Price value={price} className="tnum font-display text-2xl leading-none text-bone" />
                       <BookButton
                         location="service_card"
                         serviceId={service.bookingId}
@@ -74,10 +74,13 @@ export function ServicesMenu() {
         ))}
       </div>
 
+      {/* Service durations are not published anywhere on the current site and
+          a booking engine cannot build a slot calendar without them. That is a
+          question for the client (PITCH-NOTES.md), not a footnote for the
+          customer — so this line states the price promise and nothing else. */}
       <p className="mt-8 text-xs leading-relaxed text-bone-faint">
-        Prices are exactly as published by Barber Club. CONFIRM: service durations are not
-        published anywhere on the current site — they are needed before a booking engine
-        can build a slot calendar.
+        Every price on this menu is the price at the counter. Classic is walk-in; Premier
+        is by appointment.
       </p>
     </>
   );

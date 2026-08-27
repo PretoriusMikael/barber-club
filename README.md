@@ -9,6 +9,9 @@ into a chair.**
 
 - [FINDINGS.md](./FINDINGS.md) — full audit of the live site, and the ten gaps needing client input
 - [BLUEPRINT.md](./BLUEPRINT.md) — strategy, copy, CTA and technical rationale
+- [PITCH-NOTES.md](./PITCH-NOTES.md) — **client-facing.** What was taken off the screen before the
+  preview went out, the full photography and video shot list, and everything we still need from
+  Barber Club. This is the document that goes in the email
 
 ---
 
@@ -21,9 +24,14 @@ npm run build    # type errors fail the build on purpose
 npm run lint
 ```
 
-Runs today with **no accounts, no API keys and no database.** Missing photography renders as
-labelled placeholder tiles carrying the shot brief, so the asset gap stays visible in the
-running site.
+Runs today with **no accounts, no API keys and no database.**
+
+**Missing photography renders nothing.** `AssetFrame` returns `null` without a `src`, and every
+layout is built to stand up without its picture (see `ServiceCard`). The dashed "SHOT NEEDED"
+tiles that used to advertise the asset gap in the running site are gone — they were a build tool,
+and the site is now shown to the client. The briefs themselves are untouched, still sitting beside
+every asset in `app/content/`, and collected for the client in
+[PITCH-NOTES.md](./PITCH-NOTES.md). Fill in a `src` and the picture appears; nothing else changes.
 
 ---
 
@@ -165,6 +173,30 @@ motion animates via rAF and the CSS media query alone cannot stop it.
 Three open-source libraries, integrated from real source — nothing reimplemented from
 screenshots.
 
+### Corner radius
+
+The site was square-cornered throughout. It is now built on **one number: 12px**, defined in
+`globals.css` `@theme` as `--radius` and used as the bare `rounded` utility — cards, buttons,
+inputs, media frames, panels, the mobile thumb bar, the lightbox trigger.
+
+Two supporting steps exist for nesting maths, not for variety:
+
+| Token | Utility | Value | For |
+|---|---|---|---|
+| `--radius-sm` | `rounded-sm` | 8px | drawn INSIDE a 12px box — a badge on a card, a tab in a segmented control. A child that repeats its parent's radius looks concentric and wrong; the inner curve wants to be tighter |
+| `--radius` | `rounded` | **12px** | the house standard. Everything, unless there is a reason |
+| `--radius-lg` | `rounded-lg` | 20px | surfaces big enough that 12px reads as a square corner — full-bleed photographic frames, the branch map, dialogs |
+
+`--radius-md` is pointed at 12px too, so the shadcn-registry accordion stays in step without
+being forked. Anything genuinely circular (the open/closed dot, the progress rail) keeps
+`rounded-full`. **Nothing else may invent a radius.**
+
+Two things deliberately keep square corners: **full-bleed bands** (`PhotoBand`, `FinalCta`,
+`TrustBar`, the sticky bar's outer edge), because a rounded corner needs a gap outside it to
+read as a corner at all; and the **focus ring**, which now inherits each element's own shape
+instead of forcing `border-radius: 2px` and visibly reshaping every card the moment it was
+tabbed to.
+
 ### Watermelon UI — `app/components/watermelon/`
 
 shadcn-registry components (React 19 + Tailwind v4 + Radix). Pulled from the real registry
@@ -234,8 +266,9 @@ block sitting beside a decorative barber pole, which was the weakest-looking par
 prose on the left, dead space on the right. Six tiles, every one a real fact from
 barberclub.co.za — trading since December 2017, eleven branches, coffee/music/Wi-Fi,
 walk-in friendly, Instagram. Three of them are links, so the grid does navigational work too.
-Square corners, because the rest of the site has none and softening only this section would
-read as a different design system.
+12px corners, like everything else — see **Corner radius** below. A bento grid is the one
+layout where the radius does structural work: it is what separates nine adjacent panels into
+nine objects rather than one gridded surface with lines drawn on it.
 
 **`TierScroll.tsx`** — Classic vs Premier as a pinned scroll comparison. The Services grid
 answers *what does it cost*; it cannot answer *which one is for me*, because the real
@@ -261,47 +294,87 @@ advances when you scroll is a trap for anyone who asked for less movement.
 
 ## Measured
 
-Production build (`next build` + `next start`), gzipped:
+Production build (`next build` + `next start`), encoded transfer size, measured over CDP on a
+390px mobile viewport. **Initial JS** is parser-inserted script only — Next's link prefetching
+adds another 40–90 KB per route *after* load, at low priority, and is excluded here because it
+is not on anyone's critical path.
 
-| Route | Initial JS | |
-|---|---|---|
-| `/` | **261 KB** | ⚠️ over |
-| `/services` | **240 KB** | ⚠️ over |
-| `/gallery` | **236 KB** | ⚠️ over |
-| `/groups` | **228 KB** | ⚠️ over |
-| `/branches` | **185 KB** | ✅ |
+| Route | Initial JS | Was | |
+|---|---|---|---|
+| `/legal/*` | **151 KB** | 199 KB | −48 KB |
+| `/book` | **153 KB** | 201 KB | −48 KB |
+| `/branches` | **160 KB** | 207 KB | −47 KB |
+| `/services` | **211 KB** | 213 KB | motion still needed |
+| `/gallery` | **212 KB** | 210 KB | motion still needed |
+| `/` | **234 KB** | 230 KB | motion still needed; +2 KB for `CutSequence` |
 
 | Other | Target | Result |
 |---|---|---|
-| three.js on first load | none | **not loaded** (225 KB deferred) ✅ |
-| Routes prerendered | — | **23/23 static** ✅ |
+| three.js on first load | none | **not loaded on mobile** (228 KB, desktop only, deferred) ✅ |
+| Routes prerendered | — | **25/25 static** ✅ |
 | ESLint | clean | **clean** ✅ |
 | TypeScript | clean | **clean** ✅ |
 | Invented data in JSON-LD | none | **none** ✅ |
 
-### ⚠️ The animation libraries broke the 200 KB budget
+### Where the bytes actually are
 
-Home went **198 KB → 256 KB**. Attributed precisely: **`motion` is 64 KB gz** across three
-chunks. That is the entire overage — nothing else regressed.
+The instructive number is `/legal/terms`: a page with **no client components of its own** was
+loading 199 KB. Almost none of the weight belongs to any individual page — the home page's own
+client code is about 30 KB on top of a shared floor, and `/branches`'s is about 8 KB. So
+"server-render the branch cards" was investigated and **rejected**: the measurable saving was
+low single-digit KB against a CSS-filtering hack, because `BranchCard` needs the client anyway
+for its live open/closed badge and its click tracking.
 
-This is a genuine conflict, not an oversight. The 200 KB budget was set for a lean brochure
-site on South African mobile data. Adopting a Framer-Motion-based component library puts a
-64 KB animation engine on the critical path of any page that animates above the fold — here,
-the hero headline and the trust-bar marquee. Both goals cannot be met at once.
+The floor was the whole story, and `motion` was ~49 KB of it — on **every** route, because two
+things reached it from the shared layout:
 
-**The lever, if the budget matters more than the motion:** Framer's `LazyMotion` + `m`
-components cut the core to roughly 15 KB and load the feature bundle after first paint. The
-catch is that motion-primitives components import `motion.*` directly, which throws under
-`LazyMotion strict` — so taking it means forking every component to use `m.*`, and re-forking
-on every upstream update.
+1. **`ui/Section.tsx` imports `Reveal`**, so anything using `<Container>` — including both
+   legal pages — pulled the animation library in for a `<div>` with padding.
+2. **`Header` renders `ScrollProgress`**, a 1px decorative hairline, and the header is in the
+   root layout.
 
-Cheaper partial options, in order of value for effort:
+Both are fixed. `Reveal` is now CSS transitions plus one shared IntersectionObserver (see
+`components/ui/Reveal.tsx` and the `[data-reveal]` block in `globals.css`), and
+`ScrollProgress` is `next/dynamic({ ssr: false })`. Pages that genuinely animate — the hero
+parallax, the pinned tier comparison, the gallery lightbox, the price count-up — still load
+motion and always will. Pages that only ever wanted a fade no longer do.
 
-1. Drop `TextEffect` from the hero and the marquee from the trust bar. That pulls motion off
-   the *above-the-fold* path, though it stays in the page bundle.
-2. Defer the gallery lightbox until first click, so the layout-projection engine is never in
-   the first load.
-3. Accept 256 KB on animated routes and keep `/branches`-style pages lean.
+### What is left on the animated routes
+
+Home is 232 KB and the remaining consumers all earn it: hero parallax and the word-by-word
+headline, `TierScroll`'s pinned comparison, the gallery's column parallax and morphing
+lightbox, the trust-bar marquee. If the budget ever has to win outright, the lever is Motion's
+`LazyMotion` + `m` components (~15 KB core, features loaded after first paint) — the catch
+being that motion-primitives components import `motion.*` directly and throw under
+`LazyMotion strict`, so it means forking each one and re-forking on every upstream update.
+
+### The video layer, and what it costs whom
+
+Two decorative motion moments, both opt-in per device (`lib/motion.ts`,
+`canPlayHeroLoop` / `canScrubSequence`). Total page transfer on `/`, measured over CDP:
+
+| Context | Hero loop | Scroll frames | Page total |
+|---|---|---|---|
+| Desktop 1440 | 87 KB | 568 KB | **1,289 KB** |
+| Tablet 800 | 87 KB | — | **787 KB** |
+| Phone 390 | — | — | **628 KB** |
+| `prefers-reduced-motion` | — | — | **691 KB** |
+| Data Saver, or 2G/3G | — | — | **493 KB** |
+
+The gates are the design, not a safety net bolted on afterwards. A phone downloads none of
+it and sees the photograph, which is the same thing it saw before any of this existed.
+
+Two decisions worth keeping:
+
+- **The hero photograph stays the LCP element on every device.** The loop layers *over* it
+  and crossfades in on `canplay`. The obvious build — `video ? <video/> : <Image/>` — makes
+  the video the LCP element wherever there is one, which is exactly the trade the hero's
+  performance contract forbids. It also means the photograph is the poster, so there is no
+  second file and no chance of the two drifting out of grade.
+- **The scrub is a frame sequence, not a video.** Scroll-scrubbing `currentTime` seeks to
+  the nearest keyframe and stalls on mobile Safari. All-intra H.264 fixes the seeking and
+  measured **1,956 KB** against **568 KB** for 48 WebP frames. Frames also decode
+  independently, so a half-loaded sequence still scrubs.
 
 **Not yet measured:** LCP, INP, CLS — those need a real deployment with real images.
 
@@ -325,7 +398,9 @@ Build work:
 - [ ] Lock the `postMessage` origin check in `BookingEmbed.tsx`
 - [ ] Photo + video shoot **across multiple branches** (critical path)
 - [ ] Wire Google Places per branch, then flip `site.rating.verified`
-- [ ] Add `/public/og.jpg` (1200×630)
+- [x] ~~Add `/public/og.jpg` (1200×630)~~ — replaced by `app/opengraph-image.tsx`, generated at
+      build time from the brand tokens. `app/icon.tsx` does the same for the favicon, which was
+      a 404
 - [ ] Legal review of both `/legal` pages; register an Information Officer (POPIA)
 - [ ] Cookie consent gating GA4
 - [ ] Optimise all 11 Google Business Profiles; enable Reserve with Google

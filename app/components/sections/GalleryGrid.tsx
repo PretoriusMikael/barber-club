@@ -39,7 +39,7 @@ import { galleryTagLabels, type GalleryItem, type GalleryTag } from '@/content/g
 export function GalleryGrid({
   items,
   filterable = false,
-  layout = "masonry",
+  layout: layoutProp = "auto",
 }: {
   items: GalleryItem[];
   filterable?: boolean;
@@ -50,18 +50,40 @@ export function GalleryGrid({
    *   Multi-column BALANCES by height, so four identical tiles across three
    *   columns come out 2-1-1 and the section reads as though a tile is missing.
    *   With one ratio there is nothing for masonry to solve.
+   * "auto" — decide from the pictures. Default, and the only one worth passing
+   *   explicitly against.
    */
-  layout?: "masonry" | "grid";
+  layout?: "masonry" | "grid" | "auto";
 }) {
   const [active, setActive] = useState<GalleryTag | 'all'>('all');
 
   const tags = useMemo(() => {
     const present = new Set<GalleryTag>();
-    items.forEach((i) => i.tags.forEach((t) => present.add(t)));
+    items.filter((i) => i.src).forEach((i) => i.tags.forEach((t) => present.add(t)));
     return Array.from(present);
   }, [items]);
 
-  const visible = active === 'all' ? items : items.filter((i) => i.tags.includes(active));
+  /* Only photographs that exist. AssetFrame renders nothing without a `src`,
+     so an unshot item would otherwise contribute an empty, clickable tile — and
+     a lightbox that opens onto nothing. Filtering here also keeps the tag pills
+     honest: a category with no photographs yet does not offer a filter that
+     leads to an empty grid. */
+  const shot = useMemo(() => items.filter((i) => Boolean(i.src)), [items]);
+  const visible = active === 'all' ? shot : shot.filter((i) => i.tags.includes(active));
+
+  /* Masonry solves ONE problem: mixed aspect ratios with no shared row baseline.
+     Handed a set that shares a ratio it does the opposite — CSS columns balance
+     by height, so four identical tiles across three columns come out 2-1-1 and
+     leave a third of the section empty, which reads as a picture that failed to
+     load rather than as a layout. The four supplied photographs all share 6/7,
+     so the honest answer today is equal cells; when the shoot lands with mixed
+     ratios this flips back to masonry on its own. */
+  const layout =
+    layoutProp !== "auto"
+      ? layoutProp
+      : new Set(visible.map((i) => i.ratio)).size > 1
+        ? "masonry"
+        : "grid";
 
   /* --- Column parallax ----------------------------------------------------
    * The three columns drift at slightly different rates as the section passes.
@@ -108,9 +130,11 @@ export function GalleryGrid({
               onClick={() => setActive(tag)}
               aria-pressed={active === tag}
               className={cn(
-                'h-9 border px-4 text-xs uppercase tracking-wider transition-colors',
+                'h-9 rounded border px-4 text-xs uppercase tracking-wider transition-colors',
+                // Same selection language as the branch filters and the tier
+                // toggle — see TierToggle for why it is not brass.
                 active === tag
-                  ? 'border-brass bg-brass text-ink'
+                  ? 'border-bone/40 bg-bone/10 text-bone'
                   : 'border-line text-bone-dim hover:border-bone/40 hover:text-bone'
               )}
             >
@@ -159,12 +183,11 @@ export function GalleryGrid({
                     as="span"
                     variant="frame"
                     delay={(i % 3) * 90}
-                    className="block overflow-hidden"
+                    className="block overflow-hidden rounded"
                   >
                     <AssetFrame
                       asset={item}
                       ratio={item.ratio}
-                      index={i + 1}
                       sizes="(min-width: 768px) 33vw, 50vw"
                     />
                   </Reveal>
@@ -173,7 +196,7 @@ export function GalleryGrid({
 
               <MorphingDialogContainer>
                 <MorphingDialogContent className="relative w-[min(92vw,32rem)]">
-                  <AssetFrame asset={item} ratio={item.ratio} sizes="92vw" />
+                  <AssetFrame asset={item} ratio={item.ratio} radius="lg" sizes="92vw" />
                   <MorphingDialogDescription
                     disableLayoutAnimation
                     variants={{

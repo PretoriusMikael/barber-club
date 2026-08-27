@@ -2,15 +2,28 @@
  * FAQ, rendered as visible copy AND as FAQPage JSON-LD so these can win
  * long-tail local search on their own.
  *
- * Answers are built from what barberclub.co.za actually publishes. Anything the
- * site does not answer is marked `CONFIRM:` — and lib/schema.tsx filters those
- * out of the structured data, because publishing a wrong policy in schema is
- * worse than publishing nothing.
+ * Answers are built from what barberclub.co.za actually publishes. Four
+ * questions cannot be answered from the current site at all, and they are the
+ * four customers most want answered — which is exactly why they stay in this
+ * file rather than being deleted. They carry `pending: true`, and `answered`
+ * below is what the page and the schema both render.
+ *
+ * A pending question renders NOWHERE. It used to render its own CONFIRM note,
+ * which meant a customer opening "How do I pay?" was shown a message addressed
+ * to the client. The asks are collected in PITCH-NOTES.md; supply an answer,
+ * drop the flag, and the question appears in the accordion and in the FAQPage
+ * markup on the same deploy.
  */
 
 export interface FaqItem {
   question: string;
   answer: string;
+  /**
+   * The current site does not publish this, so `answer` is the question we need
+   * to put to the client rather than something a customer may read. Filtered
+   * out of both the rendered accordion and the JSON-LD.
+   */
+  pending?: boolean;
 }
 
 export const faqs: FaqItem[] = [
@@ -27,7 +40,8 @@ export const faqs: FaqItem[] = [
   {
     question: "Which branches are Classic and which are Premier?",
     answer:
-      "CONFIRM: this mapping is not published on the current site and must be supplied by the client before launch.",
+      "Not published on the current site. Needed before launch — it also decides booking routing and the tier badge on every branch card.",
+    pending: true,
   },
   {
     question: "Where are you?",
@@ -56,16 +70,19 @@ export const faqs: FaqItem[] = [
   {
     question: "How long does a cut take?",
     answer:
-      "CONFIRM: durations are not published anywhere on the current site and need to come from the shop.",
+      "Durations are not published anywhere on the current site. A booking engine cannot build a slot calendar without them.",
+    pending: true,
   },
   {
     question: "How do I cancel or reschedule?",
     answer:
-      "CONFIRM: no cancellation policy is published on the current site. This needs to be agreed before the booking system goes live.",
+      "No cancellation policy is published on the current site. Must be agreed before online booking goes live, and must match the vendor's configuration.",
+    pending: true,
   },
   {
     question: "How do I pay?",
-    answer: "CONFIRM: accepted payment methods are not published on the current site.",
+    answer: "Accepted payment methods are not published on the current site.",
+    pending: true,
   },
   {
     question: "What is Barber Club, exactly?",
@@ -73,3 +90,12 @@ export const faqs: FaqItem[] = [
       "Barber Club opened its first doors in December 2017 and has grown to eleven branches. It started when a group of friends decided to build a business that would have a positive impact on the community — great coffee, music, Wi-Fi and experienced barbers. More than a cut.",
   },
 ];
+
+/**
+ * What actually renders — on the page and in the FAQPage schema alike.
+ *
+ * Publishing a policy you have not agreed is worse than publishing none, and in
+ * structured data it is worse still: a wrong answer in FAQPage markup is a
+ * wrong answer shown directly in Google's results.
+ */
+export const answeredFaqs = faqs.filter((f) => !f.pending);

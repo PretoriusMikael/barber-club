@@ -43,13 +43,13 @@ export default function BookPage() {
           <div className="mt-4 flex flex-col gap-3 sm:flex-row">
             <Link
               href="/branches"
-              className="inline-flex h-11 items-center justify-center border border-bone/25 px-6 text-sm uppercase tracking-wide hover:border-bone/60"
+              className="inline-flex h-11 items-center justify-center rounded border border-bone/25 px-6 text-sm uppercase tracking-wide hover:border-bone/60"
             >
               Browse branches
             </Link>
             <a
               href={`mailto:${site.email.general}`}
-              className="inline-flex h-11 items-center justify-center border border-bone/25 px-6 text-sm uppercase tracking-wide hover:border-bone/60"
+              className="inline-flex h-11 items-center justify-center rounded border border-bone/25 px-6 text-sm uppercase tracking-wide hover:border-bone/60"
             >
               {site.email.general}
             </a>

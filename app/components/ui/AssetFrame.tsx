@@ -1,16 +1,25 @@
 import Image from "next/image";
-import { Camera } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { AssetBrief } from "@/content/services";
 
 /**
- * Renders a photograph — or, while `src` is still null, a labelled placeholder
- * showing the shot brief for that frame.
+ * Renders a photograph — and renders NOTHING while `src` is still null.
  *
- * This is deliberate: the photography shot list stays visible in the running
- * site instead of hiding in a spreadsheet. Phase 1 (the shoot) is the real
- * critical path on this project and the most commonly underestimated item, so
- * the gaps should be impossible to ignore.
+ * This component used to draw a dashed "SHOT NEEDED" tile carrying the brief for
+ * the frame, so the outstanding shot list stayed visible in the running site
+ * rather than hiding in a spreadsheet. That was the right call while the build
+ * was the audience. It is the wrong call now that the site is shown to the
+ * client: a service card that is 55% production note is a card that argues the
+ * business has not been photographed, and a visitor cannot tell the difference
+ * between "mid-project" and "broken".
+ *
+ * The briefs have not been deleted — they still live beside every asset in
+ * content/services.ts, content/gallery.ts and content/branches.ts, and they are
+ * collected for the client in PITCH-NOTES.md. They simply do not render. The
+ * moment a `src` lands, the picture appears with no other change.
+ *
+ * Callers must therefore treat the frame as optional and lay out without it (see
+ * ServiceCard, which drops to a typographic card when there is no photograph).
  *
  * Aspect ratios are always explicit → CLS stays at 0.
  */
@@ -21,7 +30,7 @@ export function AssetFrame({
   focus,
   sizes = "(min-width: 768px) 33vw, 100vw",
   priority = false,
-  index,
+  radius = "md",
 }: {
   asset: AssetBrief;
   ratio?: "3/4" | "4/5" | "1/1" | "6/7" | "16/9";
@@ -30,9 +39,11 @@ export function AssetFrame({
   className?: string;
   sizes?: string;
   priority?: boolean;
-  /** Optional label shown on the placeholder, e.g. "03". */
-  index?: number;
+  /** `lg` for frames big enough that the house 12px reads as a square corner. */
+  radius?: "md" | "lg";
 }) {
+  if (!asset.src) return null;
+
   const ratioClass = {
     "3/4": "aspect-[3/4]",
     "4/5": "aspect-[4/5]",
@@ -44,51 +55,24 @@ export function AssetFrame({
     "16/9": "aspect-video",
   }[ratio];
 
-  if (asset.src) {
-    return (
-      <div className={cn("relative overflow-hidden bg-ink-raised", ratioClass, className)}>
-        <Image
-          src={asset.src}
-          alt={asset.alt}
-          fill
-          sizes={sizes}
-          priority={priority}
-          style={focus ? { objectPosition: focus } : undefined}
-          className="object-cover transition-transform duration-700 ease-[var(--ease-out-expo)] group-hover:scale-[1.04]"
-        />
-      </div>
-    );
-  }
-
   return (
     <div
       className={cn(
-        "relative flex flex-col justify-between overflow-hidden border border-dashed border-bone/15 bg-ink-raised p-4",
+        "relative overflow-hidden bg-ink-raised",
+        radius === "lg" ? "rounded-lg" : "rounded",
         ratioClass,
         className
       )}
-      role="img"
-      aria-label={`Placeholder: ${asset.alt}`}
     >
-      {/* Faint diagonal hatching so placeholders read as "pending", not "broken". */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 opacity-[0.06]"
-        style={{
-          backgroundImage:
-            "repeating-linear-gradient(45deg, #f4f1ea 0 1px, transparent 1px 10px)",
-        }}
+      <Image
+        src={asset.src}
+        alt={asset.alt}
+        fill
+        sizes={sizes}
+        priority={priority}
+        style={focus ? { objectPosition: focus } : undefined}
+        className="object-cover transition-transform duration-700 ease-[var(--ease-out-expo)] group-hover:scale-[1.04]"
       />
-      <div className="relative flex items-center justify-between text-bone-faint">
-        <Camera aria-hidden className="h-4 w-4" />
-        {typeof index === "number" ? (
-          <span className="font-mono text-[10px]">{String(index).padStart(2, "0")}</span>
-        ) : null}
-      </div>
-      <p className="relative text-[11px] leading-snug text-bone-faint">
-        <span className="mb-1 block uppercase tracking-[0.2em] text-brass-dim">Shot needed</span>
-        {asset.brief}
-      </p>
     </div>
   );
 }

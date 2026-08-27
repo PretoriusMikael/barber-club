@@ -133,6 +133,68 @@ export function useRenderTier(): RenderTier {
   );
 }
 
+/* --- Heavy decorative media -------------------------------------------------
+ * The hero loop is ~320 KB and the scroll-scrub sequence ~520 KB. Both are
+ * decoration: the page reads, converts and looks finished without either. So
+ * they answer to the same three absolute signals the 3D scene does — Data
+ * Saver, a 2G/3G connection, and a stated preference for less movement — plus a
+ * width floor, because neither effect is worth its bytes on a phone that is
+ * already carrying a pre-rendered scissor and a hero photograph.
+ *
+ * The floors differ on purpose. A background loop still works at tablet width;
+ * a scrub needs a viewport tall and wide enough that the frame is worth
+ * decoding at all, and it needs a pointer-driven scroll to feel like scrubbing
+ * rather than flicking.
+ * -------------------------------------------------------------------------- */
+
+function heavyMediaAllowed(minWidth: number): boolean {
+  if (typeof window === "undefined") return false;
+
+  const nav = navigator as NavigatorWithCapabilities;
+  if (nav.connection?.saveData) return false;
+  if (nav.connection?.effectiveType && /^(slow-2g|2g|3g)$/.test(nav.connection.effectiveType)) {
+    return false;
+  }
+  if (prefersReducedMotion()) return false;
+
+  return window.matchMedia(`(min-width: ${minWidth}px)`).matches;
+}
+
+/**
+ * Resolved once per page view, like renderTier().
+ *
+ * A resize across the width floor mid-session will not start a download that
+ * was refused at load, and that is the intended behaviour rather than an
+ * oversight: the still is a complete answer, and beginning a 320 KB fetch
+ * because someone dragged a window wider is a surprise, not a feature.
+ */
+function once(fn: () => boolean): () => boolean {
+  let cached: boolean | undefined;
+  return () => (cached === undefined ? (cached = fn()) : cached);
+}
+
+/** Tablet and up. The hero photograph stays the LCP element either way. */
+export const canPlayHeroLoop = once(() => heavyMediaAllowed(768));
+
+/** Desktop only. See components/sections/CutSequence.tsx. */
+export const canScrubSequence = once(() => heavyMediaAllowed(1024));
+
+/**
+ * The gates as hooks, resolved after hydration.
+ *
+ * Same shape and same reasoning as useRenderTier: the server snapshot is
+ * `false`, so the server and the first client render agree and the media can
+ * only ever appear as an ordinary post-hydration update. Deciding during render
+ * would put the two on different trees.
+ */
+export function useHeroLoopAllowed(): boolean {
+  return useSyncExternalStore(subscribeToNothing, canPlayHeroLoop, () => false);
+}
+
+export function useScrubAllowed(): boolean {
+  return useSyncExternalStore(subscribeToNothing, canScrubSequence, () => false);
+}
+
 /**
  * Kept as a boolean for call sites that only need "is there a scene at all".
  * @deprecated prefer renderTier() — it can distinguish low from none.

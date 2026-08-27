@@ -23,7 +23,7 @@ export function BranchCard({ branch, className }: { branch: Branch; className?: 
   return (
     <article
       className={cn(
-        "flex h-full flex-col border border-line bg-ink-raised p-5 transition-colors hover:border-bone/25",
+        "flex h-full flex-col rounded border border-line bg-ink-raised p-5 transition-colors hover:border-bone/25",
         className
       )}
     >
@@ -34,19 +34,16 @@ export function BranchCard({ branch, className }: { branch: Branch; className?: 
             {branch.name.split("—")[1]?.trim() ?? branch.name}
           </h3>
         </div>
-        {branch.tier === "unconfirmed" ? (
-          // Visible reminder rather than a guess. See content/branches.ts.
-          <span
-            className="shrink-0 border border-dashed border-bone/25 px-2 py-1 text-[10px] uppercase tracking-wider text-bone-faint"
-            title="Classic vs Premier is not published on the current site — confirm with the client"
-          >
-            Tier TBC
-          </span>
-        ) : (
-          <span className="shrink-0 border border-brass/40 px-2 py-1 text-[10px] uppercase tracking-wider text-brass">
+        {/* No badge while the tier is unconfirmed. The Classic/Premier split is
+            not published anywhere on the current site (see content/branches.ts
+            and PITCH-NOTES.md) — and a customer-facing "Tier TBC" chip answers
+            a question the customer never asked with a note meant for us. The
+            badge returns, per branch, the moment the mapping is supplied. */}
+        {branch.tier !== "unconfirmed" ? (
+          <span className="shrink-0 rounded-sm border border-brass/40 px-2 py-1 text-[10px] uppercase tracking-wider text-brass">
             {branch.tier}
           </span>
-        )}
+        ) : null}
       </div>
 
       <p className="mt-3 flex items-start gap-2.5 text-sm leading-relaxed text-bone-dim">
@@ -73,7 +70,7 @@ export function BranchCard({ branch, className }: { branch: Branch; className?: 
         <a
           href={`tel:${branch.phone.e164}`}
           onClick={() => track("phone_click", { location: "branches", branch: branch.slug })}
-          className="flex h-10 flex-1 items-center justify-center gap-2 border border-bone/20 text-xs uppercase tracking-wide hover:border-bone/50"
+          className="flex h-10 flex-1 items-center justify-center gap-2 rounded-sm border border-bone/20 text-xs uppercase tracking-wide hover:border-bone/50"
         >
           <Phone aria-hidden className="h-3.5 w-3.5" />
           Call
@@ -83,7 +80,7 @@ export function BranchCard({ branch, className }: { branch: Branch; className?: 
           target="_blank"
           rel="noopener noreferrer"
           onClick={() => track("directions_click", { location: "branches", branch: branch.slug })}
-          className="flex h-10 flex-1 items-center justify-center gap-2 border border-bone/20 text-xs uppercase tracking-wide hover:border-bone/50"
+          className="flex h-10 flex-1 items-center justify-center gap-2 rounded-sm border border-bone/20 text-xs uppercase tracking-wide hover:border-bone/50"
         >
           <Navigation aria-hidden className="h-3.5 w-3.5" />
           Directions
@@ -91,7 +88,7 @@ export function BranchCard({ branch, className }: { branch: Branch; className?: 
         <Link
           href={`/branches/${branch.slug}`}
           onClick={() => track("branch_select", { branch: branch.slug })}
-          className="flex h-10 w-10 shrink-0 items-center justify-center border border-bone/20 hover:border-bone/50"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-sm border border-bone/20 hover:border-bone/50"
           aria-label={`More about ${branch.name}`}
         >
           <ArrowRight aria-hidden className="h-4 w-4" />
