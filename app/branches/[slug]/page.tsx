@@ -4,12 +4,11 @@ import Link from "next/link";
 import { MapPin, Phone, Mail, ArrowLeft } from "lucide-react";
 import { branches, getBranch } from "@/content/branches";
 import { site } from "@/content/site";
-import { Section, Container, Eyebrow } from "@/components/ui/Section";
+import { Section, Container } from "@/components/ui/Section";
 import { AssetFrame } from "@/components/ui/AssetFrame";
-import { BranchHours, BranchActions } from "@/components/sections/BranchDetail";
+import { BranchHours, BranchActions, BranchMap } from "@/components/sections/BranchDetail";
 import { BranchCard } from "@/components/sections/BranchCard";
 import { BookButton } from "@/components/ui/Button";
-import { mapEmbedFor } from "@/lib/booking";
 import { JsonLd, branchSchema, breadcrumbSchema } from "@/lib/schema";
 
 export function generateStaticParams() {
@@ -78,36 +77,31 @@ export default async function BranchPage({ params }: { params: Promise<{ slug: s
 
           <div className="mt-6 flex flex-wrap items-start justify-between gap-6">
             <div>
-              <Eyebrow>{branch.town}</Eyebrow>
-              <h1 className="max-w-3xl text-[clamp(2.25rem,7vw,4.5rem)] leading-[0.92]">
-                {branch.name.split("—")[1]?.trim() ?? branch.name}
+              {/* The town line is INSIDE the h1, not a separate eyebrow above it.
+                  Visually identical; the difference is that the page's one
+                  heading now reads "Barber Club Paarl — 276 Main Road" instead
+                  of "276 Main Road", which is the phrase this page exists to
+                  rank for. Eleven pages, eleven towns, and it was free. */}
+              <h1 className="max-w-3xl">
+                <span className="mb-4 flex items-center gap-3 font-sans text-xs font-normal uppercase tracking-[0.28em] text-brass-dim">
+                  <span aria-hidden className="h-px w-8 bg-brass-rule" />
+                  Barber Club {branch.town}
+                </span>
+                <span className="block text-[clamp(2.25rem,7vw,4.5rem)] leading-[0.92]">
+                  {branch.name.split("—")[1]?.trim() ?? branch.name}
+                </span>
               </h1>
             </div>
-            {branch.tier === "unconfirmed" ? (
-              <span
-                className="border border-dashed border-bone/25 px-3 py-1.5 text-[10px] uppercase tracking-wider text-bone-faint"
-                title="Classic vs Premier is not published on the current site"
-              >
-                Tier to confirm
-              </span>
-            ) : (
-              <span className="border border-brass/40 px-3 py-1.5 text-[10px] uppercase tracking-wider text-brass">
+            {/* Nothing while the tier is unconfirmed — see BranchCard. */}
+            {branch.tier !== "unconfirmed" ? (
+              <span className="rounded-sm border border-brass/40 px-3 py-1.5 text-[10px] uppercase tracking-wider text-brass">
                 {branch.tier}
               </span>
-            )}
+            ) : null}
           </div>
 
           <div className="mt-12 grid gap-10 lg:grid-cols-2 lg:gap-14">
-            <div className="h-[320px] overflow-hidden border border-line bg-ink-sunken md:h-[440px]">
-              <iframe
-                title={`Map showing Barber Club ${branch.name}`}
-                src={mapEmbedFor(branch)}
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-                className="h-full w-full border-0 grayscale-[0.6] contrast-[1.1] invert-[0.92] hue-rotate-180"
-                allowFullScreen
-              />
-            </div>
+            <BranchMap branch={branch} />
 
             <div>
               <address className="flex items-start gap-3 not-italic">
@@ -142,18 +136,20 @@ export default async function BranchPage({ params }: { params: Promise<{ slug: s
                 </BookButton>
               </div>
 
-              {!branch.geo ? (
-                <p className="mt-5 text-xs leading-relaxed text-bone-faint">
-                  CONFIRM: no coordinates are published for this branch. The map falls back
-                  to an address search, and <code>geo</code> is omitted from the schema
-                  rather than sent as 0,0 — which is a real location in the Atlantic.
-                </p>
-              ) : null}
+              {/* No coordinates are published for any branch, so the map falls
+                  back to an address search and `geo` is omitted from the schema
+                  rather than sent as 0,0 (a real place in the Atlantic). The
+                  customer sees a working map either way; the ask for eleven
+                  sets of coordinates is in PITCH-NOTES.md. */}
             </div>
           </div>
 
-          <div className="mt-14">
-            <AssetFrame asset={branch.image} ratio="16/9" sizes="100vw" />
+          {/* Renders only once a shopfront photograph exists for this branch —
+              AssetFrame draws nothing without a `src`. Eleven frontage shots are
+              on the asset list in PITCH-NOTES.md; they are what makes a branch
+              page recognisable from the pavement. */}
+          <div className="mt-14 empty:mt-0">
+            <AssetFrame asset={branch.image} ratio="16/9" radius="lg" sizes="100vw" />
           </div>
         </Container>
       </Section>
@@ -171,7 +167,7 @@ export default async function BranchPage({ params }: { params: Promise<{ slug: s
           <div className="mt-10">
             <Link
               href="/branches"
-              className="inline-flex h-11 items-center border border-bone/25 px-6 text-sm uppercase tracking-wide hover:border-bone/60"
+              className="inline-flex h-11 items-center rounded border border-bone/25 px-6 text-sm uppercase tracking-wide hover:border-bone/60"
             >
               See all {branches.length} branches
             </Link>

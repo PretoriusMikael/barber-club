@@ -27,6 +27,7 @@ export function Groups({ compact = false }: { compact?: boolean }) {
       <BlobScene className="opacity-70" />
       <Container className="relative">
         <SectionHeading
+          as={compact ? "h2" : "h1"}
           title="Bring the whole wedding party."
           intro="Cuts, hot-towel shaves, head and neck massages, a drink in hand and the place to yourselves. Booked as one."
         />
@@ -63,13 +64,11 @@ export function Groups({ compact = false }: { compact?: boolean }) {
           </p>
         </div>
 
-        {!compact ? (
-          <p className="mt-8 max-w-2xl text-xs leading-relaxed text-bone-faint">
-            CONFIRM: the current site does not state which branches can host groups.
-            Exclusive venue use implies not all eleven can — this needs to be settled
-            before launch, along with a proper enquiry form to replace the mailto.
-          </p>
-        ) : null}
+        {/* Which branches can host a group is not published anywhere on the
+            current site, and exclusive venue use implies not all eleven can.
+            That is an open question for the client, not a caveat to print under
+            the packages — it lives in PITCH-NOTES.md, alongside the case for
+            replacing this mailto with a real enquiry form. */}
       </Container>
     </Section>
   );
@@ -92,12 +91,12 @@ function PackageCard({ pkg }: { pkg: GroupPackage }) {
       ) : null}
       <div
         className={cn(
-          "relative flex h-full flex-col border bg-ink-raised p-6 transition-colors",
+          "relative flex h-full flex-col rounded border bg-ink-raised p-6 transition-colors",
           pkg.highlight ? "border-brass/50" : "border-line hover:border-bone/25"
         )}
       >
       {pkg.highlight ? (
-        <p className="mb-3 self-start bg-brass px-2 py-0.5 text-[10px] uppercase tracking-wider text-ink">
+        <p className="mb-3 self-start rounded-sm bg-brass px-2 py-0.5 text-[10px] uppercase tracking-wider text-ink">
           Most booked
         </p>
       ) : null}

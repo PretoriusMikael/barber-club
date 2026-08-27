@@ -3,7 +3,9 @@
  *
  * SOURCE: everything here was extracted verbatim from barberclub.co.za
  * (scanned 2026-08-17, 17 pages via sitemap). Nothing in this file is invented.
- * Items still needing confirmation from the client are marked `CONFIRM:`.
+ * Anything the current site does not publish is left empty or disabled rather
+ * than guessed, and the full list of what we need from the client is collected
+ * in PITCH-NOTES.md.
  */
 
 export type DayKey = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
@@ -16,7 +18,6 @@ export interface OpeningHours {
 
 export const site = {
   name: "Barber Club",
-  legalName: "CONFIRM: registered entity name",
 
   /** Verbatim from the current homepage hero. */
   tagline: "More than a cut. Welcome to the Club.",
@@ -53,9 +54,11 @@ export const site = {
     advertising: "john.mostert@barberclub.co.za",
   },
 
-  /** CONFIRM: no WhatsApp number is published on the current site. WhatsApp is
-   *  a primary contact channel in SA and this is a cheap conversion win —
-   *  confirm whether 073 050 6637 accepts WhatsApp, then flip `enabled`. */
+  /** No WhatsApp number is published on the current site. WhatsApp is a primary
+   *  contact channel in SA and this is a cheap conversion win — confirm whether
+   *  073 050 6637 accepts WhatsApp, then flip `enabled` and every WhatsApp CTA
+   *  on the site appears. Until then the UI hides the channel entirely rather
+   *  than sending customers into a dead one. See PITCH-NOTES.md. */
   whatsapp: {
     enabled: false,
     number: "27730506637",
@@ -64,8 +67,9 @@ export const site = {
 
   timezone: "Africa/Johannesburg",
 
-  /** CONFIRM: not published on the current site. */
-  paymentMethods: ["CONFIRM: card", "CONFIRM: cash", "CONFIRM: SnapScan"],
+  /** Not published on the current site — needs confirming before the booking
+   *  terms can state it. Nothing renders this list today. */
+  paymentMethods: [] as readonly string[],
 
   /** --- Social (all verified live on the current site) -------------------- */
   social: {
@@ -99,7 +103,9 @@ export const booking = {
   /** Vendor deep-link params — verify against their docs before relying on them. */
   params: { service: "service", staff: "employee", location: "location" },
   embedUrl: "",
-  /** CONFIRM: no cancellation policy is published on the current site. */
+  /** No cancellation policy is published on the current site. 4 hours is the
+   *  proposed default stated on /legal/terms — this value, that page and the
+   *  vendor's own configuration must agree before booking goes live. */
   cancellationWindowHours: 4,
   depositRequired: false,
 } as const;

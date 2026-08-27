@@ -32,6 +32,7 @@ export function Branches({ limit }: { limit?: number }) {
       <Container>
         <div className="flex flex-wrap items-end justify-between gap-6">
           <SectionHeading
+            as={limit ? "h2" : "h1"}
             title="Eleven chairs' worth of Winelands."
             intro="Paarl, Stellenbosch, Wellington, Malmesbury, Durbanville and Franschhoek. Find the one on your way home."
           />
@@ -56,7 +57,7 @@ export function Branches({ limit }: { limit?: number }) {
                 }}
                 aria-pressed={town === t}
                 className={cn(
-                  "h-9 border px-4 text-xs uppercase tracking-wider transition-colors",
+                  "h-9 rounded border px-4 text-xs uppercase tracking-wider transition-colors",
                   town === t
                     ? "border-brass bg-brass text-ink"
                     : "border-line text-bone-dim hover:border-bone/40 hover:text-bone"

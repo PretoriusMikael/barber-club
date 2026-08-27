@@ -40,7 +40,8 @@ export function StickyCta() {
   const bookHref = buildBookingUrl();
   const external = isExternalBooking();
   const whatsapp = whatsappUrl();
-  const tab = "flex h-12 flex-1 items-center justify-center gap-2 border border-bone/20 text-xs uppercase tracking-wide text-bone";
+  const tab =
+    "flex h-12 flex-1 items-center justify-center gap-2 rounded border border-bone/20 text-xs uppercase tracking-wide text-bone";
 
   return (
     <div
@@ -90,7 +91,7 @@ export function StickyCta() {
           href={bookHref}
           {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
           onClick={() => track("book_cta_click", { location: "sticky_bar" })}
-          className="flex h-12 flex-[1.6] items-center justify-center gap-2 bg-brass text-xs font-semibold uppercase tracking-wide text-ink"
+          className="flex h-12 flex-[1.6] items-center justify-center gap-2 rounded bg-brass text-xs font-semibold uppercase tracking-wide text-ink"
           tabIndex={visible ? 0 : -1}
         >
           <CalendarDays aria-hidden className="h-4 w-4" />

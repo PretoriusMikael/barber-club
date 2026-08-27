@@ -65,23 +65,16 @@ export const gallery: GalleryItem[] = [
 /**
  * What the home page shows.
  *
- * Real photographs only — never a placeholder. The dashed "shot needed" frames
- * are a production tool, and they belong on /gallery where the shot list is the
- * point. Rendered on the conversion surface they were doing active harm: with
- * four photographs among six empty boxes, the section that exists to prove this
- * business can cut hair mostly proved it had not been photographed. Two thirds
- * empty reads as a business with nothing to show, not as a site mid-build.
+ * Real photographs only. The briefs above are a production tool and no longer
+ * render anywhere — see components/ui/AssetFrame.tsx. A section that exists to
+ * prove this business can cut hair must not be mostly evidence that it has not
+ * been photographed yet.
  *
  * Derived rather than hand-listed, so it maintains itself: every new `src` that
  * lands in the array above appears here automatically, and nothing without one
  * ever can.
- *
- * The fallback matters. Before ANY photography existed this page would
- * otherwise have had no gallery at all, silently — so with nothing shot, it
- * shows the briefs and the gap stays impossible to miss.
  */
-const shot = gallery.filter((item) => Boolean(item.src));
-export const homeGallery = shot.length > 0 ? shot : gallery.slice(0, 9);
+export const homeGallery = gallery.filter((item) => Boolean(item.src));
 
 /**
  * Hero video.

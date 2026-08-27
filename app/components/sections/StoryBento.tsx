@@ -34,11 +34,12 @@ import { cn } from "@/lib/utils";
  *   row 3  amenities(2) + walk-in(2) + instagram(2)
  */
 
-/** Shared tile chrome. Square corners throughout — the rest of the site has no
- *  rounded edges, and softening only this section would read as a different
- *  design system rather than a highlight. */
+/** Shared tile chrome. `rounded` is the house 12px (globals.css) — a bento grid
+ *  is the one layout where the radius does structural work rather than
+ *  decoration: it is what separates nine adjacent panels into nine objects
+ *  instead of one gridded surface with lines drawn on it. */
 const TILE =
-  "relative flex flex-col overflow-hidden border border-line bg-ink-raised p-6 transition-colors duration-300 hover:border-bone/25";
+  "relative flex flex-col overflow-hidden rounded border border-line bg-ink-raised p-6 transition-colors duration-300 hover:border-bone/25";
 
 export function StoryBento() {
   const sectionRef = useRef<HTMLDivElement>(null);

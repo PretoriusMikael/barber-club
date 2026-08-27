@@ -1,6 +1,6 @@
 'use client';
 
-import { faqs } from '@/content/faq';
+import { answeredFaqs } from '@/content/faq';
 import {
   Accordion,
   AccordionContent,
@@ -35,7 +35,7 @@ export function Faq() {
           collapsible
           className="mt-12 border-y border-line"
         >
-          {faqs.map((faq) => (
+          {answeredFaqs.map((faq) => (
             <AccordionItem
               key={faq.question}
               value={faq.question}

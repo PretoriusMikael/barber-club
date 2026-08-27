@@ -118,7 +118,7 @@ function MorphingDialogTrigger({
     <motion.button
       ref={triggerRef}
       layoutId={`dialog-${uniqueId}`}
-      className={cn('relative cursor-pointer', className)}
+      className={cn('relative cursor-pointer rounded', className)}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
       style={style}
@@ -208,7 +208,7 @@ function MorphingDialogContent({
     <motion.div
       ref={containerRef}
       layoutId={`dialog-${uniqueId}`}
-      className={cn('overflow-hidden', className)}
+      className={cn('overflow-hidden rounded-lg', className)}
       style={style}
       role='dialog'
       aria-modal='true'
@@ -251,7 +251,7 @@ function MorphingDialogContainer({ children }: MorphingDialogContainerProps) {
         <>
           <motion.div
             key={`backdrop-${uniqueId}`}
-            className='fixed inset-0 h-full w-full bg-white/40 backdrop-blur-xs dark:bg-black/40'
+            className='fixed inset-0 h-full w-full bg-ink/80 backdrop-blur-sm'
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}

@@ -32,6 +32,30 @@
   /* Secondary accent — barber-pole red. Used for the 3D scene + rare emphasis. */
   --color-pole: #b4302b;
 
+  /* --- Corner radius ------------------------------------------------------
+     ONE number decides the shape of this site: 12px, exposed as the bare
+     `rounded` utility. Every card, button, media frame, panel and input uses
+     it, so the whole page reads as one set of objects rather than a collection
+     of components that happen to share a palette.
+
+     The other two steps exist only for nesting maths, not for variety:
+
+       sm (8px)  — something drawn INSIDE a 12px box (a badge on a card, a
+                   thumbnail in a padded frame). A child that repeats its
+                   parent's radius looks concentric and wrong; the eye wants
+                   the inner curve tighter than the outer one.
+       lg (20px) — surfaces big enough that 12px reads as a square corner:
+                   full-bleed photographic bands, the hero media, dialogs.
+
+     Anything genuinely circular (status dots, avatars) keeps `rounded-full`.
+     Nothing else may invent a radius. */
+  --radius: 12px;
+  --radius-sm: 8px;
+  /* shadcn-registry components (the accordion) ship `rounded-md`. Pointing it
+     at the house number keeps them in step without forking the component. */
+  --radius-md: 12px;
+  --radius-lg: 20px;
+
   /* --- Fonts (wired to next/font in app/layout.tsx) ----------------------- */
   --font-display: var(--font-bebas), "Impact", "Haettenschweiler", sans-serif;
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
@@ -148,11 +172,15 @@
     font-feature-settings: "tnum" 1;
   }
 
-  /* Visible focus ring — the booking flow must be keyboard-completable. */
+  /* Visible focus ring — the booking flow must be keyboard-completable.
+
+     No `border-radius` here. An outline already follows the shape of the
+     element it is drawn around, so forcing 2px on focus made every 12px card
+     and button visibly change shape the moment it was tabbed to — the one
+     state where the component should be MORE readable, not reshaped. */
   :focus-visible {
     outline: 2px solid var(--color-brass);
     outline-offset: 3px;
-    border-radius: 2px;
   }
 
   h1,

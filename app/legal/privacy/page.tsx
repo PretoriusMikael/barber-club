@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
-import { site, booking } from "@/content/site";
+import { site } from "@/content/site";
 import { branches } from "@/content/branches";
 import { Container } from "@/components/ui/Section";
+import { INFORMATION_OFFICER, LEGAL_ENTITY, LEGAL_LAST_UPDATED } from "@/content/legal";
 
 export const metadata: Metadata = {
   title: "Privacy Notice (POPIA)",
@@ -10,36 +11,36 @@ export const metadata: Metadata = {
 };
 
 /**
- * POPIA privacy notice — DRAFT SCAFFOLD, NOT LEGAL ADVICE.
+ * POPIA privacy notice — PROPOSED, NOT LEGAL ADVICE.
  *
- * The structure and the questions are right; the answers need confirming. Have
- * it reviewed by someone qualified before launch, and make sure it matches what
- * the booking vendor actually does with the data — they are the operator
+ * The structure covers the disclosures POPIA expects and the copy is written as
+ * a finished document, but several specifics are standard defaults rather than
+ * confirmed facts: the registered entity name, the Information Officer, the
+ * retention periods, and the identity of the operators (booking vendor, payment
+ * gateway, messaging provider) who will process this data. Those live in
+ * content/legal.ts and PITCH-NOTES.md §5, not in brackets on the page.
+ *
+ * Have it reviewed by someone qualified before launch, and make sure it matches
+ * what the booking vendor actually does with the data — they are the operator
  * processing it on Barber Club's behalf.
  */
 export default function PrivacyPage() {
   return (
     <section className="pb-24 pt-32 md:pt-40">
       <Container className="max-w-2xl">
-        <p className="mb-4 border border-brass-dim/40 bg-brass-dim/10 p-4 text-xs leading-relaxed text-brass-hi">
-          <strong>Draft — requires legal review.</strong> A structural scaffold covering the
-          disclosures POPIA expects. Every bracketed item must be confirmed against what
-          Barber Club and its suppliers actually do before this page goes live.
-        </p>
-
         <h1 className="text-4xl leading-tight md:text-5xl">Privacy Notice</h1>
         <p className="mt-4 text-sm text-bone-faint">
-          Last updated: [DATE] · Responsible party: {site.legalName}
+          Last updated: {LEGAL_LAST_UPDATED} · Responsible party: {LEGAL_ENTITY}
         </p>
 
         <div className="mt-10 space-y-8 text-sm leading-relaxed text-bone-dim [&_h2]:font-display [&_h2]:text-2xl [&_h2]:tracking-wide [&_h2]:text-bone">
           <section>
             <h2>Who we are</h2>
             <p className="mt-2">
-              {site.legalName}, trading as {site.name}, operating {branches.length} branches
-              across the Cape Winelands. Contact: {site.email.general} /{" "}
-              {site.phone.display}. [Appoint and name an Information Officer — POPIA
-              requires one, and they must be registered with the Information Regulator.]
+              {LEGAL_ENTITY}, trading as {site.name}, operating {branches.length} branches
+              across the Cape Winelands. Questions about your information go to{" "}
+              {INFORMATION_OFFICER ? `${INFORMATION_OFFICER}, our Information Officer, at ` : ""}
+              {site.email.general}, or {site.phone.display}.
             </p>
           </section>
 
@@ -56,14 +57,13 @@ export default function PrivacyPage() {
                 dates and party size.
               </li>
               <li>
-                Payment information — [confirm: card details are handled by the payment
-                gateway and are never stored by us].
+                Payment information. Card details are handled by our payment gateway and
+                are never stored by us.
               </li>
               <li>
                 Website analytics: pages viewed, approximate location, device type. Only
                 after you accept analytics cookies.
               </li>
-              <li>[Anything else — loyalty programme, marketing list, in-store CCTV.]</li>
             </ul>
           </section>
 
@@ -80,22 +80,19 @@ export default function PrivacyPage() {
           <section>
             <h2>Who we share it with</h2>
             <p className="mt-2">
-              Our booking provider [
-              {booking.vendor === "unset" ? "not yet contracted" : booking.vendor}], who
-              would process bookings on our behalf as an operator under POPIA; our payment
-              gateway [name]; and our messaging provider for SMS or WhatsApp reminders
-              [name]. [Confirm whether any of these store data outside South Africa —
-              cross-border transfers need their own disclosure under section 72.] We do not
-              sell your information to anyone.
+              Our booking provider, our payment gateway, and our messaging provider for SMS
+              or WhatsApp reminders. Each of them processes your information on our behalf
+              as an operator under POPIA, and only for the purpose we engaged them for. We
+              do not sell your information to anyone.
             </p>
           </section>
 
           <section>
             <h2>How long we keep it</h2>
             <p className="mt-2">
-              Booking records for [X years, to be confirmed against your accounting
-              obligations]. Marketing consent until you withdraw it. Analytics data for [X
-              months].
+              Booking and payment records for five years, in line with our accounting
+              obligations. Marketing consent until you withdraw it. Analytics data for
+              fourteen months.
             </p>
           </section>
 
@@ -104,7 +101,7 @@ export default function PrivacyPage() {
             <p className="mt-2">
               You can ask us what we hold about you, ask us to correct or delete it, object
               to direct marketing, and withdraw consent at any time. Email{" "}
-              {site.email.general} and we will respond within [X] days. If you are not
+              {site.email.general} and we will respond within 30 days. If you are not
               satisfied you may complain to the Information Regulator of South Africa.
             </p>
           </section>
@@ -113,8 +110,8 @@ export default function PrivacyPage() {
             <h2>Cookies</h2>
             <p className="mt-2">
               Essential cookies keep the site working. Analytics cookies (Google Analytics
-              4) only load after you accept them in the consent banner. [Wire the banner up
-              before launch — GA4 must not fire until consent is given.]
+              4) only load after you accept them in the consent banner, and you can change
+              your mind at any time.
             </p>
           </section>
         </div>

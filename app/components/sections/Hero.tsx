@@ -138,7 +138,11 @@ export function Hero() {
             should I care" before the headline gets a chance to be poetic.
             Wrapping is explicit so it breaks after "Winelands" on a phone
             rather than orphaning "since" on its own line. */}
-        <p className="mb-5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs uppercase tracking-[0.28em] text-brass">
+        {/* Tracking is dialled back below `sm`. At 0.28em this line is wider than
+            a 390px viewport and broke into three, stranding a separator dot at
+            the end of each — three ragged lines of metadata above the headline,
+            which is the first thing in the first viewport. */}
+        <p className="mb-5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs uppercase tracking-[0.16em] text-brass sm:tracking-[0.28em]">
           <span aria-hidden className="h-px w-8 shrink-0 bg-brass" />
           <span className="whitespace-nowrap after:ml-3 after:text-brass/40 after:content-['·']">
             {branches.length} branches

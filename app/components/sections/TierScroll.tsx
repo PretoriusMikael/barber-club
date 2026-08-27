@@ -159,7 +159,7 @@ export function TierScroll() {
           <Heading />
           <div className="mt-12 grid gap-6 md:grid-cols-2">
             {TIERS.map((tier) => (
-              <div key={tier} className="border border-line bg-ink-raised p-6 sm:p-8">
+              <div key={tier} className="rounded border border-line bg-ink-raised p-6 sm:p-8">
                 <TierCopy tier={tier} />
                 <div className="mt-8">
                   <TierMenu tier={tier} />
@@ -205,7 +205,7 @@ export function TierScroll() {
                     are — the rail fills continuously as you scroll, so it is a
                     scrubber you can read rather than two lamps that swap. */}
                 <div className="mt-10 flex items-center gap-3">
-                  <span aria-hidden className="relative block h-0.5 w-20 bg-line">
+                  <span aria-hidden className="relative block h-0.5 w-20 overflow-hidden rounded-full bg-line">
                     <motion.span
                       className="absolute inset-y-0 left-0 w-full origin-left bg-brass"
                       style={{ scaleX: railScale }}
@@ -223,7 +223,7 @@ export function TierScroll() {
                     <motion.div
                       key={tier}
                       className={cn(
-                        "col-start-1 row-start-1 border border-line bg-ink-raised p-8 lg:p-10",
+                        "col-start-1 row-start-1 rounded-lg border border-line bg-ink-raised p-8 lg:p-10",
                         i !== index && "pointer-events-none"
                       )}
                       style={{ opacity: opacity[i], y: yShift[i] }}

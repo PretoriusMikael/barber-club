@@ -13,8 +13,9 @@
 export type ServiceCategory = "cuts" | "beards" | "shaves" | "extras";
 export type Tier = "classic" | "premier";
 
-/** Describes a photograph that still needs to be shot. Rendered as a visible
- *  placeholder tile until `src` is filled, so the shot list stays in your face. */
+/** Describes a photograph. `src` is null until the shoot lands; nothing renders
+ *  in the meantime (see components/ui/AssetFrame.tsx) and the outstanding briefs
+ *  are collected for the client in PITCH-NOTES.md. */
 export interface AssetBrief {
   src: string | null;
   alt: string;
@@ -31,7 +32,7 @@ export interface Service {
   /** ZAR. null = not offered in that tier. */
   classicPrice: number | null;
   premierPrice: number | null;
-  /** CONFIRM: not published on the current site. */
+  /** Not published on the current site — see PITCH-NOTES.md. */
   minutes: number | null;
   featured: boolean;
   /** Vendor-side service id, for deep-linking into the booking flow. */

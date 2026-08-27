@@ -1,7 +1,7 @@
 import { site } from "@/content/site";
 import { branches, type Branch } from "@/content/branches";
 import { services, priceFor } from "@/content/services";
-import { faqs } from "@/content/faq";
+import { answeredFaqs } from "@/content/faq";
 import { openingHoursSpecification } from "@/lib/hours";
 import { mapsUrlFor } from "@/lib/booking";
 
@@ -105,7 +105,7 @@ export function serviceCatalogSchema(tier: "classic" | "premier") {
 
 export function faqSchema() {
   // Never publish an unconfirmed answer into structured data.
-  const answered = faqs.filter((f) => !f.answer.includes("CONFIRM"));
+  const answered = answeredFaqs;
   if (answered.length === 0) return null;
 
   return {

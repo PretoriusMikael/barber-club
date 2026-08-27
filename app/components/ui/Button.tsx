@@ -17,7 +17,7 @@ type Variant = "primary" | "ghost" | "outline";
 type Size = "sm" | "md" | "lg";
 
 const base =
-  "inline-flex items-center justify-center gap-2 font-medium tracking-wide uppercase " +
+  "inline-flex items-center justify-center gap-2 rounded font-medium tracking-wide uppercase " +
   "transition-all duration-200 ease-[var(--ease-out-expo)] select-none " +
   "disabled:opacity-50 disabled:pointer-events-none";
 

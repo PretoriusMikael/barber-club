@@ -83,14 +83,27 @@ export function SectionHeading({
   title,
   intro,
   className,
+  as = "h2",
 }: {
   title: ReactNode;
   intro?: ReactNode;
   className?: string;
+  /**
+   * `h1` when this heading IS the page's subject — which on /services,
+   * /branches, /gallery and /groups it is.
+   *
+   * Those four pages were shipping with no `<h1>` at all: every heading on them
+   * came through this component and this component always rendered `h2`. A page
+   * with no h1 costs on both fronts that matter here — a screen reader user
+   * jumping by heading level lands nowhere, and the strongest on-page ranking
+   * signal for "barber shop in Paarl" was simply absent from the page that
+   * should win it.
+   */
+  as?: "h1" | "h2";
 }) {
   return (
     <div className={cn("max-w-2xl", className)}>
-      <Reveal as="h2" variant="mask" className="text-4xl leading-[0.95] sm:text-5xl md:text-6xl">
+      <Reveal as={as} variant="mask" className="text-4xl leading-[0.95] sm:text-5xl md:text-6xl">
         {title}
       </Reveal>
       {intro ? (

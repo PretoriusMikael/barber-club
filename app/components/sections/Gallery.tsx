@@ -22,9 +22,7 @@ export function Gallery() {
         />
 
         <div className="mt-14">
-          {/* Equal cells: the supplied photographs all share one 6/7 ratio, so
-              there is nothing for masonry to balance. */}
-          <GalleryGrid items={homeGallery} layout="grid" />
+          <GalleryGrid items={homeGallery} />
         </div>
 
         <div className="mt-12 flex flex-col gap-3 sm:flex-row">

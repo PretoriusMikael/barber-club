@@ -49,8 +49,9 @@ export const metadata: Metadata = {
     title: `${site.name} — ${site.tagline}`,
     description: site.description,
     url: site.url,
-    // TODO: add /public/og.jpg (1200×630). Barber links get shared in WhatsApp
-    // groups constantly, so the OG image matters more here than on most sites.
+    // The card itself is generated at build time by app/opengraph-image.tsx —
+    // Next picks it up by convention, so there is no image path to keep in sync
+    // here and no static file to forget to ship.
   },
   twitter: { card: "summary_large_image" },
   alternates: { canonical: "/" },
@@ -106,7 +107,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="antialiased">
         <a
           href="#main"
-          className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[70] focus:bg-brass focus:px-4 focus:py-2 focus:text-ink"
+          className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[70] focus:rounded focus:bg-brass focus:px-4 focus:py-2 focus:text-ink"
         >
           Skip to content
         </a>

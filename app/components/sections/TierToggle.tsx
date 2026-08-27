@@ -26,7 +26,7 @@ export function TierToggle({
 }) {
   return (
     <div
-      className={cn("inline-flex border border-line bg-ink p-1", className)}
+      className={cn("inline-flex rounded border border-line bg-ink p-1", className)}
       role="tablist"
       aria-label="Service tier"
     >
@@ -43,7 +43,7 @@ export function TierToggle({
               track("tier_toggle", { tier });
             }}
             className={cn(
-              "px-5 py-2.5 text-xs uppercase tracking-[0.15em] transition-colors sm:px-7 sm:text-sm",
+              "rounded-sm px-5 py-2.5 text-xs uppercase tracking-[0.15em] transition-colors sm:px-7 sm:text-sm",
               active ? "bg-brass text-ink" : "text-bone-dim hover:text-bone"
             )}
           >

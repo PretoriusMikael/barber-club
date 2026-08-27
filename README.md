@@ -9,6 +9,9 @@ into a chair.**
 
 - [FINDINGS.md](./FINDINGS.md) — full audit of the live site, and the ten gaps needing client input
 - [BLUEPRINT.md](./BLUEPRINT.md) — strategy, copy, CTA and technical rationale
+- [PITCH-NOTES.md](./PITCH-NOTES.md) — **client-facing.** What was taken off the screen before the
+  preview went out, the full photography and video shot list, and everything we still need from
+  Barber Club. This is the document that goes in the email
 
 ---
 
@@ -21,9 +24,14 @@ npm run build    # type errors fail the build on purpose
 npm run lint
 ```
 
-Runs today with **no accounts, no API keys and no database.** Missing photography renders as
-labelled placeholder tiles carrying the shot brief, so the asset gap stays visible in the
-running site.
+Runs today with **no accounts, no API keys and no database.**
+
+**Missing photography renders nothing.** `AssetFrame` returns `null` without a `src`, and every
+layout is built to stand up without its picture (see `ServiceCard`). The dashed "SHOT NEEDED"
+tiles that used to advertise the asset gap in the running site are gone — they were a build tool,
+and the site is now shown to the client. The briefs themselves are untouched, still sitting beside
+every asset in `app/content/`, and collected for the client in
+[PITCH-NOTES.md](./PITCH-NOTES.md). Fill in a `src` and the picture appears; nothing else changes.
 
 ---
 
@@ -165,6 +173,30 @@ motion animates via rAF and the CSS media query alone cannot stop it.
 Three open-source libraries, integrated from real source — nothing reimplemented from
 screenshots.
 
+### Corner radius
+
+The site was square-cornered throughout. It is now built on **one number: 12px**, defined in
+`globals.css` `@theme` as `--radius` and used as the bare `rounded` utility — cards, buttons,
+inputs, media frames, panels, the mobile thumb bar, the lightbox trigger.
+
+Two supporting steps exist for nesting maths, not for variety:
+
+| Token | Utility | Value | For |
+|---|---|---|---|
+| `--radius-sm` | `rounded-sm` | 8px | drawn INSIDE a 12px box — a badge on a card, a tab in a segmented control. A child that repeats its parent's radius looks concentric and wrong; the inner curve wants to be tighter |
+| `--radius` | `rounded` | **12px** | the house standard. Everything, unless there is a reason |
+| `--radius-lg` | `rounded-lg` | 20px | surfaces big enough that 12px reads as a square corner — full-bleed photographic frames, the branch map, dialogs |
+
+`--radius-md` is pointed at 12px too, so the shadcn-registry accordion stays in step without
+being forked. Anything genuinely circular (the open/closed dot, the progress rail) keeps
+`rounded-full`. **Nothing else may invent a radius.**
+
+Two things deliberately keep square corners: **full-bleed bands** (`PhotoBand`, `FinalCta`,
+`TrustBar`, the sticky bar's outer edge), because a rounded corner needs a gap outside it to
+read as a corner at all; and the **focus ring**, which now inherits each element's own shape
+instead of forcing `border-radius: 2px` and visibly reshaping every card the moment it was
+tabbed to.
+
 ### Watermelon UI — `app/components/watermelon/`
 
 shadcn-registry components (React 19 + Tailwind v4 + Radix). Pulled from the real registry
@@ -234,8 +266,9 @@ block sitting beside a decorative barber pole, which was the weakest-looking par
 prose on the left, dead space on the right. Six tiles, every one a real fact from
 barberclub.co.za — trading since December 2017, eleven branches, coffee/music/Wi-Fi,
 walk-in friendly, Instagram. Three of them are links, so the grid does navigational work too.
-Square corners, because the rest of the site has none and softening only this section would
-read as a different design system.
+12px corners, like everything else — see **Corner radius** below. A bento grid is the one
+layout where the radius does structural work: it is what separates nine adjacent panels into
+nine objects rather than one gridded surface with lines drawn on it.
 
 **`TierScroll.tsx`** — Classic vs Premier as a pinned scroll comparison. The Services grid
 answers *what does it cost*; it cannot answer *which one is for me*, because the real
@@ -325,7 +358,9 @@ Build work:
 - [ ] Lock the `postMessage` origin check in `BookingEmbed.tsx`
 - [ ] Photo + video shoot **across multiple branches** (critical path)
 - [ ] Wire Google Places per branch, then flip `site.rating.verified`
-- [ ] Add `/public/og.jpg` (1200×630)
+- [x] ~~Add `/public/og.jpg` (1200×630)~~ — replaced by `app/opengraph-image.tsx`, generated at
+      build time from the brand tokens. `app/icon.tsx` does the same for the favicon, which was
+      a 404
 - [ ] Legal review of both `/legal` pages; register an Information Officer (POPIA)
 - [ ] Cookie consent gating GA4
 - [ ] Optimise all 11 Google Business Profiles; enable Reserve with Google

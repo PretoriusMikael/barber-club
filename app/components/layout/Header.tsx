@@ -113,7 +113,7 @@ export function Header() {
           <button
             type="button"
             onClick={() => setOpen((v) => !v)}
-            className="p-2 lg:hidden"
+            className="rounded-sm p-2 lg:hidden"
             aria-label={open ? "Close menu" : "Open menu"}
             aria-expanded={open}
             aria-controls="mobile-nav"
@@ -153,7 +153,7 @@ export function Header() {
         <Link
           href="/branches"
           onClick={() => setOpen(false)}
-          className="mt-8 flex items-center gap-3 border border-line p-4 text-sm text-bone-dim"
+          className="mt-8 flex items-center gap-3 rounded border border-line p-4 text-sm text-bone-dim"
         >
           <MapPin aria-hidden className="h-5 w-5 shrink-0 text-brass" />
           <span>
@@ -164,7 +164,7 @@ export function Header() {
 
         <a
           href={`tel:${site.phone.e164}`}
-          className="mt-3 flex items-center gap-3 border border-line p-4 text-sm"
+          className="mt-3 flex items-center gap-3 rounded border border-line p-4 text-sm"
         >
           <Phone aria-hidden className="h-5 w-5 shrink-0 text-brass" />
           <span className="text-bone">{site.phone.display}</span>
