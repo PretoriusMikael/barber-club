@@ -91,23 +91,34 @@ function PackageCard({ pkg }: { pkg: GroupPackage }) {
       ) : null}
       <div
         className={cn(
-          "relative flex h-full flex-col rounded border bg-ink-raised p-6 transition-colors",
+          "surface relative flex h-full flex-col rounded border bg-ink-raised p-6 transition-colors",
           pkg.highlight ? "border-brass/50" : "border-line hover:border-bone/25"
         )}
       >
-      {/* Outlined, not filled. This is a label, not an action — and the card it
-          sits on already carries a brass border and a slow glow, so the "this
-          one" signal survives without a second filled brass object on a page
-          whose only filled brass object should be the booking button. */}
+      {/* OUT OF FLOW, and that is the point. In flow this badge pushed the
+          highlighted card's heading, price and feature list down by its own
+          height, so the one card people are meant to compare against the other
+          two was the one that lined up with neither. Three packages that differ
+          only in what is on the list have to be readable across, not just down.
+
+          Outlined rather than filled: this is a label, not an action, and the
+          card already carries a brass border and a slow glow, so the "this one"
+          signal survives without a second filled brass object on a page whose
+          only filled brass object should be the booking button. */}
       {pkg.highlight ? (
-        <p className="mb-3 self-start rounded-sm border border-brass/50 px-2 py-0.5 text-[10px] uppercase tracking-wider text-brass">
+        <p className="absolute right-5 top-5 rounded-sm border border-brass/50 bg-ink-raised px-2 py-0.5 text-[10px] uppercase tracking-wider text-brass">
           Most booked
         </p>
       ) : null}
 
-      <h3 className="font-display text-3xl tracking-wide">{pkg.name}</h3>
+      <h3 className="pr-24 font-display text-3xl tracking-wide">{pkg.name}</h3>
 
-      <p className="mt-2 text-bone">
+      {/* A fixed line box, because the two price shapes are different heights:
+          "R 650" is display at 30px, "Price on request" at 24px, and a 6px
+          difference here pushes every feature row below it out of step with the
+          other two cards. In a three-way comparison the rows have to line up
+          across, so the box is the constant and the contents vary inside it. */}
+      <p className="mt-2 flex min-h-[1.875rem] items-baseline text-bone">
         {pkg.pricePerPerson !== null ? (
           <>
             <span className="tnum font-display text-3xl leading-none">

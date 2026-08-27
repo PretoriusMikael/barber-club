@@ -17,7 +17,13 @@ export function Gallery() {
     <Section id="gallery" tone="raised">
       <Container>
         <SectionHeading
-          title="The work speaks. Scroll it."
+          // "Scroll it" was an instruction that stopped being true. It was
+          // written for a long masonry wall; the section is a four-up grid that
+          // fits in one viewport, so the copy was directing people to do
+          // something the page no longer asks of them. A flat declarative is
+          // also more confident, which is the register the rest of the site is
+          // written in.
+          title="The work speaks."
           intro="Real cuts on real clients, done in Barber Club chairs across the Winelands. No stock photography, and no filters doing the heavy lifting."
         />
 

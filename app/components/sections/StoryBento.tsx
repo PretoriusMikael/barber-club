@@ -39,7 +39,7 @@ import { cn } from "@/lib/utils";
  *  decoration: it is what separates nine adjacent panels into nine objects
  *  instead of one gridded surface with lines drawn on it. */
 const TILE =
-  "relative flex flex-col overflow-hidden rounded border border-line bg-ink-raised p-6 transition-colors duration-300 hover:border-bone/25";
+  "surface relative flex flex-col overflow-hidden rounded border border-line bg-ink-raised p-6 transition-colors duration-300 hover:border-bone/25";
 
 export function StoryBento() {
   const sectionRef = useRef<HTMLDivElement>(null);

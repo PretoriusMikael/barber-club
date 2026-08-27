@@ -134,17 +134,12 @@ export function useRenderTier(): RenderTier {
 }
 
 /* --- Heavy decorative media -------------------------------------------------
- * The hero loop is ~320 KB and the scroll-scrub sequence ~520 KB. Both are
- * decoration: the page reads, converts and looks finished without either. So
- * they answer to the same three absolute signals the 3D scene does — Data
- * Saver, a 2G/3G connection, and a stated preference for less movement — plus a
- * width floor, because neither effect is worth its bytes on a phone that is
- * already carrying a pre-rendered scissor and a hero photograph.
- *
- * The floors differ on purpose. A background loop still works at tablet width;
- * a scrub needs a viewport tall and wide enough that the frame is worth
- * decoding at all, and it needs a pointer-driven scroll to feel like scrubbing
- * rather than flicking.
+ * The hero loop is ~90 KB and it is decoration: the page reads, converts and
+ * looks finished without it. So it answers to the same three absolute signals
+ * the 3D scene does — Data Saver, a 2G/3G connection, and a stated preference
+ * for less movement — plus a width floor, because a background video is not
+ * worth its bytes on a phone that is already carrying a pre-rendered scissor
+ * and a hero photograph.
  * -------------------------------------------------------------------------- */
 
 function heavyMediaAllowed(minWidth: number): boolean {
@@ -176,11 +171,8 @@ function once(fn: () => boolean): () => boolean {
 /** Tablet and up. The hero photograph stays the LCP element either way. */
 export const canPlayHeroLoop = once(() => heavyMediaAllowed(768));
 
-/** Desktop only. See components/sections/CutSequence.tsx. */
-export const canScrubSequence = once(() => heavyMediaAllowed(1024));
-
 /**
- * The gates as hooks, resolved after hydration.
+ * The gate as a hook, resolved after hydration.
  *
  * Same shape and same reasoning as useRenderTier: the server snapshot is
  * `false`, so the server and the first client render agree and the media can
@@ -189,10 +181,6 @@ export const canScrubSequence = once(() => heavyMediaAllowed(1024));
  */
 export function useHeroLoopAllowed(): boolean {
   return useSyncExternalStore(subscribeToNothing, canPlayHeroLoop, () => false);
-}
-
-export function useScrubAllowed(): boolean {
-  return useSyncExternalStore(subscribeToNothing, canScrubSequence, () => false);
 }
 
 /**

@@ -173,6 +173,47 @@ motion animates via rAF and the CSS media query alone cannot stop it.
 Three open-source libraries, integrated from real source — nothing reimplemented from
 screenshots.
 
+### Card material — `.surface` and the tilt cards
+
+Every card on the site wears one class:
+
+```css
+.surface { background-image: linear-gradient(to bottom, rgba(244,241,234,.045), …, transparent 55%); }
+```
+
+A permanent light from above, painted over whatever background colour the caller set. It is
+one declaration and it does more for the page than any individual component change: a flat
+fill on a near-black background has no material, and eleven flat fills have no relationship
+to each other. Lit from a common direction they read as one set of objects under one light.
+Service, branch, package, tier panel, story tile, booking panel — all of them.
+
+**The service cards additionally answer the pointer** (`components/ui/TiltCard.tsx`): they
+tilt toward the cursor, and a specular highlight plus a lit edge track across them. Four
+things keep it on the right side of tasteful, and all four are the reason most versions of
+this effect are not:
+
+| | Why |
+|---|---|
+| **6° maximum tilt** | The tacky versions use 15–20°, at which point the card stops being a surface and starts being a flapping panel |
+| **The light moves *opposite* the tilt** | A highlight is a reflection of a fixed source. Tying both to the cursor in the same direction is the tell that it is two unrelated effects rather than one lit object |
+| **No transition while tracking, 600ms on exit** | Easing toward a cursor feels laggy; snapping home feels broken. The two states want opposite treatments |
+| **The crisp light lives on the edge** | A bright spot in the middle of a matte face reads as a light leak. Real lacquered objects show their brightest line at the bevel |
+
+Cost: no library, no canvas, no WebGL. Four CSS custom properties written inside one rAF,
+with the layout read batched into the frame rather than run per pointer event. Everything
+animated is `transform` and `opacity`. Home's initial JS moved 232 → 233 KB.
+
+Never attached without a real pointer (`hover: hover and pointer: fine`), and flattened
+entirely under `prefers-reduced-motion` — in CSS, so the guard holds even if the script does
+not run.
+
+**On WebGL background libraries** (canvasui.dev was evaluated): not adopted. Its headline
+effects — Liquid, Glass, Ripple, Blaze — depend on the experimental html-in-canvas API,
+which today means Chrome behind a flag; everywhere else they no-op. The five that work
+everywhere are WebGL scenes, i.e. a second three.js-class dependency alongside the scissor.
+The idea worth taking was the specular/glass one, and that is what `.tilt-sheen` and
+`.tilt-edge` are — in CSS, for nothing.
+
 ### Corner radius
 
 The site was square-cornered throughout. It is now built on **one number: 12px**, defined in
@@ -306,7 +347,7 @@ is not on anyone's critical path.
 | `/branches` | **160 KB** | 207 KB | −47 KB |
 | `/services` | **211 KB** | 213 KB | motion still needed |
 | `/gallery` | **212 KB** | 210 KB | motion still needed |
-| `/` | **234 KB** | 230 KB | motion still needed; +2 KB for `CutSequence` |
+| `/` | **233 KB** | 230 KB | motion still needed; +1 KB for `TiltCard` |
 
 | Other | Target | Result |
 |---|---|---|
@@ -350,31 +391,30 @@ being that motion-primitives components import `motion.*` directly and throw und
 
 ### The video layer, and what it costs whom
 
-Two decorative motion moments, both opt-in per device (`lib/motion.ts`,
-`canPlayHeroLoop` / `canScrubSequence`). Total page transfer on `/`, measured over CDP:
+One decorative motion moment — the hero loop — opt-in per device (`lib/motion.ts`,
+`canPlayHeroLoop`). Total page transfer on `/`, measured over CDP:
 
-| Context | Hero loop | Scroll frames | Page total |
-|---|---|---|---|
-| Desktop 1440 | 87 KB | 568 KB | **1,289 KB** |
-| Tablet 800 | 87 KB | — | **787 KB** |
-| Phone 390 | — | — | **628 KB** |
-| `prefers-reduced-motion` | — | — | **691 KB** |
-| Data Saver, or 2G/3G | — | — | **493 KB** |
+| Context | Hero loop | Page total |
+|---|---|---|
+| Desktop 1440 / tablet 800 | 87 KB | **787 KB** |
+| Phone 390 | — | **628 KB** |
+| `prefers-reduced-motion` | — | **691 KB** |
+| Data Saver, or 2G/3G | — | **493 KB** |
 
-The gates are the design, not a safety net bolted on afterwards. A phone downloads none of
-it and sees the photograph, which is the same thing it saw before any of this existed.
+The gate is the design, not a safety net bolted on afterwards. A phone downloads none of it
+and sees the photograph, which is the same thing it saw before any of this existed.
 
-Two decisions worth keeping:
+**The hero photograph stays the LCP element on every device.** The loop layers *over* it and
+crossfades in on `canplay`. The obvious build — `video ? <video/> : <Image/>` — makes the
+video the LCP element wherever there is one, which is exactly the trade the hero's
+performance contract forbids. It also means the photograph is the poster, so there is no
+second file and no chance of the two drifting out of grade.
 
-- **The hero photograph stays the LCP element on every device.** The loop layers *over* it
-  and crossfades in on `canplay`. The obvious build — `video ? <video/> : <Image/>` — makes
-  the video the LCP element wherever there is one, which is exactly the trade the hero's
-  performance contract forbids. It also means the photograph is the poster, so there is no
-  second file and no chance of the two drifting out of grade.
-- **The scrub is a frame sequence, not a video.** Scroll-scrubbing `currentTime` seeks to
-  the nearest keyframe and stalls on mobile Safari. All-intra H.264 fixes the seeking and
-  measured **1,956 KB** against **568 KB** for 48 WebP frames. Frames also decode
-  independently, so a half-loaded sequence still scrubs.
+A scroll-scrubbed frame sequence was built here and removed. Worth recording why, since the
+measurements outlive the feature: scrubbing a `<video>` via `currentTime` seeks to the
+nearest keyframe and stalls on mobile Safari, and an all-intra encode that seeks correctly
+measured **1,956 KB** against **568 KB** for the same shot as 48 WebP frames. If the idea
+returns, frames are the answer and 48 at 960px is the working number.
 
 **Not yet measured:** LCP, INP, CLS — those need a real deployment with real images.
 
