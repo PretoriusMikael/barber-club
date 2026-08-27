@@ -631,9 +631,11 @@
      from a common direction they read as one set of objects under one light,
      which is the whole difference between "a dark website" and "a dark room".
 
-     Every card wears it — service, branch, package, tier panel, story tile —
-     so the tilt cards are not a special species, just the ones that also
-     answer the pointer.
+     Every card wears it — service, branch, package, tier panel, story tile,
+     booking panel — and no card is a special species. The ones you can click
+     add `.card-lift` on top for their hover; nothing swaps out the material
+     underneath, which is why six service cards and eleven branch cards read as
+     the same object at two sizes rather than as two components.
      ------------------------------------------------------------------ */
   .surface {
     background-image: linear-gradient(
@@ -642,148 +644,131 @@
       rgba(244, 241, 234, 0.012) 22%,
       transparent 55%
     );
+    /* THE BEVEL, and the single most valuable line in this file per byte.
+
+       The gradient above says light is falling on the card. This says the card
+       has a top edge for the light to catch. One inner hairline is the whole
+       difference between a shape filled with a lighter colour and a panel with
+       a milled edge set into the page — it is what every machined dark UI has
+       and every flat one does not. 0.055 is deliberately under the threshold
+       at which you would notice it as a line; you notice its absence. */
+    box-shadow: inset 0 1px 0 rgba(244, 241, 234, 0.055);
   }
 
   /* ------------------------------------------------------------------
-     TILT CARDS — see components/ui/TiltCard.tsx, which supplies only four
-     custom properties inside one rAF. Everything below is CSS, so it runs on
-     the compositor and costs nothing per frame on the main thread.
+     CARD LIFT — the whole response of a card you can click.
+
+     A pointer-parallax tilt used to live here. It worked, and it was still the
+     wrong instrument: a price list is read, not played with, and six panels
+     swivelling under the cursor put the performance on the furniture rather
+     than on the thing being sold. The part of it that was doing real work —
+     the sense that a card is an object resting on the page rather than a
+     rectangle painted onto it — turned out to come from the bevel in
+     `.surface` above, which is static, and not from the rotation at all.
+
+     So the hover is one move. The card rises 3px and casts. Nothing tips,
+     nothing tracks the pointer, and both animated properties are `transform`
+     and `box-shadow`, so it composites off the main thread and costs no JS.
      ------------------------------------------------------------------ */
-  .tilt-scene {
-    /* On the SCENE, not the card. Perspective applied to the transformed
-       element itself uses the element's own centre as the vanishing point,
-       which makes a row of cards each look independently warped; on the parent
-       they share one viewer position and the row reads as one surface. */
-    perspective: 1000px;
-  }
-
-  .tilt-card {
-    position: relative;
-    height: 100%;
-    transform-style: preserve-3d;
-    transform: rotateX(var(--tilt-rx, 0deg)) rotateY(var(--tilt-ry, 0deg));
-    /* The settle. Overridden to `none` while the pointer is actually over the
-       card — easing toward a cursor feels like lag, and snapping home when it
-       leaves feels like a bug, so the two states want opposite treatments. */
+  .card-lift {
     transition:
-      transform 600ms var(--ease-out-expo),
+      transform 400ms var(--ease-out-expo),
       border-color 300ms var(--ease-out-expo),
       box-shadow 400ms var(--ease-out-expo);
   }
 
-  .tilt-scene[data-tilting] .tilt-card {
-    transition:
-      border-color 300ms var(--ease-out-expo),
-      box-shadow 400ms var(--ease-out-expo);
+  /* KEYBOARD PARITY FOR A STRETCHED LINK.
+
+     The Details link covers the whole card with `after:inset-0`, so a click
+     anywhere works — but the link's own box is still the 60px word in the
+     corner, and that is what the global :focus-visible ring draws around. A
+     card that is one target for the mouse and a word-sized target for the
+     keyboard is not one control, it is two, and only one of them is visible.
+
+     `:has()` moves the ring onto the object that is actually focused. The link
+     then suppresses its own (see `.stretch-link`), so there is one ring, drawn
+     around the thing the Enter key will activate. */
+  .card-lift:has(.stretch-link:focus-visible) {
+    outline: 2px solid var(--color-brass);
+    outline-offset: 3px;
   }
 
-  /* Lifts the type off the card face so it parallaxes against its own
-     background instead of being painted onto it. 1px would do nothing; much
-     more and the text detaches and starts to swim. */
-  .tilt-content {
-    position: relative;
-    display: flex;
-    height: 100%;
-    flex-direction: column;
-    transform: translateZ(22px);
+  .stretch-link:focus-visible {
+    outline: none;
   }
 
-  /* The specular highlight. `screen` rather than a flat white overlay, so it
-     brightens what is under it instead of fogging it. */
-  .tilt-sheen {
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    pointer-events: none;
-    opacity: 0;
-    mix-blend-mode: screen;
-    transition: opacity 420ms var(--ease-out-expo);
-    /* Wide and flat, not round. A specular on a broad panel is a SWEEP — an
-       even circle in the middle of a card reads as a smudge on the glass
-       rather than as light coming off it. */
-    background:
-      /* A soft core over a broad falloff. Two gradients, because one alone is
-         either a wash with no centre or a disc with no bloom.
+  .card-lift:hover {
+    transform: translateY(-3px);
+    /* The inset is repeated rather than inherited, because a `box-shadow`
+       declaration REPLACES the one in `.surface` wholesale instead of adding
+       to it — omit it here and the bevel vanishes at the exact moment the card
+       is meant to look most solid. It also brightens, which is what a real
+       edge does as it comes up into the light.
 
-         The core is deliberately restrained: on a matte card a bright spot in
-         the MIDDLE of the face reads as a light leak. The crisp part of the
-         highlight belongs on the edge, where a real lacquered or glass object
-         shows its brightest line — which is what .tilt-edge is for. */
-      radial-gradient(
-        34% 24% at var(--tilt-lx, 50%) var(--tilt-ly, 50%),
-        rgba(244, 241, 234, 0.085),
-        transparent 70%
-      ),
-      radial-gradient(
-        78% 46% at var(--tilt-lx, 50%) var(--tilt-ly, 50%),
-        rgba(244, 241, 234, 0.1),
-        rgba(244, 241, 234, 0.035) 42%,
-        transparent 72%
-      );
-  }
-
-  /* The lit edge — a 1px gradient border that brightens where the light falls.
-     This is the part that actually reads as material: a highlight in the middle
-     of a panel is a smudge, a highlight running along an edge is a bevel.
-
-     The two-layer mask is the standard gradient-border trick: paint the
-     gradient over the whole box, then punch out everything except the 1px
-     padding ring. `exclude` composites the content-box away from the full box. */
-  .tilt-edge {
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    pointer-events: none;
-    padding: 1px;
-    opacity: 0;
-    transition: opacity 420ms var(--ease-out-expo);
-    background: radial-gradient(
-      40% 54% at var(--tilt-lx, 50%) var(--tilt-ly, 50%),
-      rgba(244, 241, 234, 0.85),
-      rgba(244, 241, 234, 0.16) 38%,
-      transparent 68%
-    );
-    -webkit-mask:
-      linear-gradient(#000 0 0) content-box,
-      linear-gradient(#000 0 0);
-    -webkit-mask-composite: xor;
-    mask:
-      linear-gradient(#000 0 0) content-box,
-      linear-gradient(#000 0 0);
-    mask-composite: exclude;
-  }
-
-  .tilt-scene:hover .tilt-sheen,
-  .tilt-scene:hover .tilt-edge {
-    opacity: 1;
-  }
-
-  /* A card the pointer is on sits slightly proud of the page. The shadow is
-     brass-tinted at a very low alpha — a neutral black shadow on a near-black
-     background is invisible, and a warm one reads as the same light that is
-     making the highlight. */
-  .tilt-scene:hover .tilt-card {
+       The cast is warm rather than black. On a #0b0b0c page a neutral shadow
+       is invisible; a brass-tinted one reads as the same overhead source that
+       makes the bevel, so the card looks lit rather than outlined. */
     box-shadow:
-      0 18px 40px -24px rgba(0, 0, 0, 0.9),
-      0 0 24px -12px rgba(200, 163, 90, 0.18);
+      inset 0 1px 0 rgba(244, 241, 234, 0.11),
+      /* Grounding. Near-invisible by itself on a #0b0b0c page — its whole job
+         is to darken the few pixels directly beneath the card so the lift has
+         something to lift OFF. */
+      0 14px 28px -18px rgba(0, 0, 0, 0.95),
+      /* The lift you actually see. A black drop shadow on a black page is a
+         no-op, so what separates a raised card from a flat one here is a wide,
+         very low-alpha WARM halo — light spilling off a lit object, not a
+         shadow under a heavy one. Wide and weak: at a tighter radius or a
+         higher alpha it stops being spill and becomes a glow, which is a
+         different and much cheaper-looking effect. */
+      0 10px 44px -16px rgba(200, 163, 90, 0.13);
   }
 
-  /* No pointer, no effect — and never a card left stuck mid-tilt because a tap
-     fired `pointermove` once. The JS declines to attach here too; this is the
-     half that cannot be skipped by a script that fails to load. */
-  @media (hover: none), (pointer: coarse) {
-    .tilt-card {
-      transform: none;
-    }
+  /* ------------------------------------------------------------------
+     MENU LEADER — the dotted run between a service and its price.
 
-    .tilt-content {
-      transform: none;
-    }
+     A barber's price board and a restaurant menu solve the same problem this
+     card has: a name on the left, a number on the right, and enough space
+     between them that the eye loses the row on the way across. Before the
+     leader, the name and the price were two objects at opposite corners of a
+     430px card, set in the same face at the same size, with nothing saying
+     they belonged to each other. The leader is the two-hundred-year-old
+     answer, and it is the reason the row now reads as one line.
+     ------------------------------------------------------------------ */
+  .menu-leader {
+    flex: 1 1 auto;
+    /* Rides the baseline of the type, not the middle of the row. */
+    align-self: flex-end;
+    margin-bottom: 0.3em;
+    height: 2px;
+    /* NOT --color-line. The rule tone is #24242a, which against the #141416
+       card face is a four-percent delta — visible as a solid 1px border, and
+       completely gone once it is broken into 1px dots with 5px of gap between
+       them. A dotted line needs more contrast than a solid one to read as the
+       same weight, because each dot is fighting the background alone. */
+    background-image: radial-gradient(
+      circle at center,
+      rgba(244, 241, 234, 0.17) 1px,
+      transparent 1.2px
+    );
+    background-size: 6px 2px;
+    background-repeat: repeat-x;
+  }
 
-    .tilt-sheen,
-    .tilt-edge {
-      display: none;
-    }
+  /* The currency mark, set as typography rather than as one more letter of the
+     number. At full size "R290" reads as a word; a smaller, dimmer mark with a
+     hair of space reads as a price — and it stops the figure twinning with the
+     service name at the other end of the row, which was the actual complaint. */
+  .price-mark {
+    /* 0.68, not 0.6, and sitting ON the baseline rather than raised off it.
+       The first attempt did both — small and lifted — which is the setting for
+       a footnote marker, not a currency mark: it read as "290 with a superscript
+       R" and pulled the eye up and away from the figure. Dropped onto the
+       baseline it reads as money, and it matches the full-size R in the
+       "R 390" beneath it instead of contradicting it. */
+    font-size: 0.68em;
+    letter-spacing: 0.02em;
+    color: var(--color-bone-faint);
+    margin-right: 0.14em;
   }
 
   /* Hairline rule used between sections. */
@@ -832,16 +817,10 @@
     transition-duration: 0.01ms !important;
   }
 
-  /* Tilt cards: flat, unlit, motionless. The effect is entirely movement, and
-     there is no still version of it worth keeping. */
-  .tilt-card,
-  .tilt-content {
+  /* A card that rises on hover is movement too. The bevel and the cast stay —
+     those are material, and material is not motion — but nothing translates. */
+  .card-lift:hover {
     transform: none !important;
-  }
-
-  .tilt-sheen,
-  .tilt-edge {
-    display: none !important;
   }
 
   /* THE guard for scroll reveal, not a backstop for one.

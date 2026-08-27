@@ -173,46 +173,94 @@ motion animates via rAF and the CSS media query alone cannot stop it.
 Three open-source libraries, integrated from real source — nothing reimplemented from
 screenshots.
 
-### Card material — `.surface` and the tilt cards
+### Card material — `.surface`, the bevel, and the lift
 
 Every card on the site wears one class:
 
 ```css
-.surface { background-image: linear-gradient(to bottom, rgba(244,241,234,.045), …, transparent 55%); }
+.surface {
+  background-image: linear-gradient(to bottom, rgba(244,241,234,.045), …, transparent 55%);
+  box-shadow: inset 0 1px 0 rgba(244,241,234,.055);
+}
 ```
 
-A permanent light from above, painted over whatever background colour the caller set. It is
-one declaration and it does more for the page than any individual component change: a flat
-fill on a near-black background has no material, and eleven flat fills have no relationship
-to each other. Lit from a common direction they read as one set of objects under one light.
-Service, branch, package, tier panel, story tile, booking panel — all of them.
+Two lines doing two different jobs. The gradient is **a permanent light from above**, painted
+over whatever background colour the caller set: a flat fill on a near-black page has no
+material, and eleven flat fills have no relationship to each other, but lit from a common
+direction they read as one set of objects under one light. The inset hairline is **the
+bevel** — it gives that light a top edge to catch, and it is the whole difference between a
+shape filled with a lighter colour and a panel milled and set into the page. At 0.055 you do
+not notice it as a line; you notice its absence.
 
-**The service cards additionally answer the pointer** (`components/ui/TiltCard.tsx`): they
-tilt toward the cursor, and a specular highlight plus a lit edge track across them. Four
-things keep it on the right side of tasteful, and all four are the reason most versions of
-this effect are not:
+Service, branch, package, tier panel, story tile, booking panel — all of them, at every size.
 
-| | Why |
-|---|---|
-| **6° maximum tilt** | The tacky versions use 15–20°, at which point the card stops being a surface and starts being a flapping panel |
-| **The light moves *opposite* the tilt** | A highlight is a reflection of a fixed source. Tying both to the cursor in the same direction is the tell that it is two unrelated effects rather than one lit object |
-| **No transition while tracking, 600ms on exit** | Easing toward a cursor feels laggy; snapping home feels broken. The two states want opposite treatments |
-| **The crisp light lives on the edge** | A bright spot in the middle of a matte face reads as a light leak. Real lacquered objects show their brightest line at the bevel |
+**Cards you can click add `.card-lift`.** The hover is one move: the card rises 3px, the
+bevel brightens, and it casts. The cast is warm rather than black, because on a `#0b0b0c`
+page a neutral drop shadow is a no-op — what reads as "raised" here is a wide, very
+low-alpha brass halo, light spilling off a lit object rather than a shadow under a heavy one.
+Both animated properties are `transform` and `box-shadow`, so it composites off the main
+thread and costs no JavaScript at all.
 
-Cost: no library, no canvas, no WebGL. Four CSS custom properties written inside one rAF,
-with the layout read batched into the frame rather than run per pointer event. Everything
-animated is `transform` and `opacity`. Home's initial JS moved 232 → 233 KB.
+Two details that are easy to get wrong and were:
 
-Never attached without a real pointer (`hover: hover and pointer: fine`), and flattened
-entirely under `prefers-reduced-motion` — in CSS, so the guard holds even if the script does
-not run.
+- **`box-shadow` replaces, it does not add.** The hover rule has to restate the bevel inset
+  or it vanishes at the exact moment the card should look most solid.
+- **A stretched link needs its ring moved.** The whole card is one target
+  (`after:inset-0` on the Details link), but the link's own box is still the 60px word in
+  the corner, which is what `:focus-visible` would outline. `.card-lift:has(.stretch-link:focus-visible)`
+  puts the ring on the card and `.stretch-link:focus-visible` suppresses the inner one, so
+  the mouse target and the keyboard target are the same object. Measured: 79,385px² vs 1,165px².
+
+#### What was here before: a pointer-parallax tilt
+
+The service cards used to tilt toward the cursor with a specular highlight and a lit edge
+tracking across them (`components/ui/TiltCard.tsx`, since removed). It was built carefully —
+6° maximum rather than the usual 15–20°, the light travelling *opposite* the tilt because a
+highlight is a reflection of a fixed source, no transition while tracking and 600ms on exit,
+and the crisp light on the edge rather than the face — and it was still the wrong instrument.
+A price list is read, not played with, and six panels swivelling under the cursor put the
+performance on the furniture instead of on the thing being sold.
+
+The useful finding survived the deletion: **what made those cards read as objects was the
+static bevel, not the rotation.** That is now in `.surface`, it applies to every card rather
+than six, and it costs nothing per frame.
 
 **On WebGL background libraries** (canvasui.dev was evaluated): not adopted. Its headline
 effects — Liquid, Glass, Ripple, Blaze — depend on the experimental html-in-canvas API,
 which today means Chrome behind a flag; everywhere else they no-op. The five that work
 everywhere are WebGL scenes, i.e. a second three.js-class dependency alongside the scissor.
-The idea worth taking was the specular/glass one, and that is what `.tilt-sheen` and
-`.tilt-edge` are — in CSS, for nothing.
+The idea worth taking was the specular/glass one, and what is left of it is the bevel and
+the warm halo above — in CSS, for nothing.
+
+### Menu typography
+
+The service card is a menu row, so it is set like one.
+
+- **`.menu-leader`** — the dotted run between the name and the price. Name at one end and
+  figure at the other, in the same face at the same size, across 430px of card, is two
+  objects in two corners; the leader is the two-hundred-year-old answer and it makes the row
+  read as one line. The dots are `rgba(244,241,234,.17)`, *not* `--color-line`: broken into
+  1px dots with 5px gaps, the rule tone disappears entirely, because each dot fights the
+  background alone.
+- **`.price-mark`** — the currency mark at 0.68em on the baseline, in `bone-faint`. At full
+  size "R290" reads as a word; smaller and dimmer it reads as a price, and it stops the
+  figure twinning with the service name. It also matches the `R 390` that `formatZar`
+  produces in the cross-tier line directly beneath it, which it previously contradicted on
+  the same card.
+- **The cross-tier price is labelled**, not concatenated: a `brass-dim` tier eyebrow and a
+  tabular figure, on the cards and in the `/services` list, which had drifted into two
+  different treatments of one fact.
+
+### The menu tile spans its row when it is alone on it
+
+The grid's last cell is always the "N more services" tile. Whether it lands mid-row or by
+itself depends on how many services the current tier offers, and the tiers differ: Classic
+shows five (a tidy 2×3 with the tile closing it), Premier shows six, which pushed the tile
+onto a third row with two thirds of the row empty beside it. Rather than hard-code around
+today's counts, the component asks the arithmetic — `cellCount % columns === 1` means the
+last cell is alone — and a tile that is alone spans the row *and* switches to a horizontal
+layout, so the call to action moves to the far end instead of huddling at one edge of an
+empty band.
 
 ### Corner radius
 
@@ -347,7 +395,7 @@ is not on anyone's critical path.
 | `/branches` | **160 KB** | 207 KB | −47 KB |
 | `/services` | **211 KB** | 213 KB | motion still needed |
 | `/gallery` | **212 KB** | 210 KB | motion still needed |
-| `/` | **233 KB** | 230 KB | motion still needed; +1 KB for `TiltCard` |
+| `/` | **233 KB** | 230 KB | motion still needed. Removing `TiltCard` did not move this: the component was a few hundred bytes, and the hover that replaced it is pure CSS |
 
 | Other | Target | Result |
 |---|---|---|
@@ -382,7 +430,7 @@ motion and always will. Pages that only ever wanted a fade no longer do.
 
 ### What is left on the animated routes
 
-Home is 232 KB and the remaining consumers all earn it: hero parallax and the word-by-word
+Home is 233 KB and the remaining consumers all earn it: hero parallax and the word-by-word
 headline, `TierScroll`'s pinned comparison, the gallery's column parallax and morphing
 lightbox, the trust-bar marquee. If the budget ever has to win outright, the lever is Motion's
 `LazyMotion` + `m` components (~15 KB core, features loaded after first paint) — the catch

@@ -23,7 +23,11 @@ export function BranchCard({ branch, className }: { branch: Branch; className?: 
   return (
     <article
       className={cn(
-        "surface flex h-full flex-col rounded border border-line bg-ink-raised p-5 transition-colors hover:border-bone/25",
+        // `card-lift` rather than `transition-colors`: this card carries a
+        // phone number and a directions link, so it responds to the pointer
+        // like the service cards do. Eleven of them in a grid is exactly where
+        // an inconsistent hover would show.
+        "surface card-lift flex h-full flex-col rounded border border-line bg-ink-raised p-5 hover:border-bone/25",
         className
       )}
     >
