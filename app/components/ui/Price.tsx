@@ -27,7 +27,13 @@ export function Price({
 
   return (
     <span className={className}>
-      {prefix}
+      {/* The mark is set, not typed. At full size "R290" is a word the eye
+          reads left to right; a smaller, dimmer R with a hair of space in
+          front of the figure is a PRICE, which is the thing this card is
+          actually answering. See `.price-mark` in globals.css. It also
+          restores the space that `formatZar` puts in "R 390" everywhere else
+          on the site — the two were inconsistent, on the same card. */}
+      <span className="price-mark">{prefix}</span>
       <AnimatedNumber value={value} springOptions={{ bounce: 0, duration: 550 }} />
     </span>
   );

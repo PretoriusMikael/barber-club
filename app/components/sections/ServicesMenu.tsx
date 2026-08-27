@@ -48,11 +48,25 @@ export function ServicesMenu() {
                       <p className="mt-1.5 text-sm leading-relaxed text-bone-dim">
                         {service.blurb}
                       </p>
-                      <p className="mt-2 text-xs text-bone-faint">
-                        {other === null
-                          ? "Premier only"
-                          : `${otherTier === "classic" ? "Classic" : "Premier"} ${priceLabel(other)}`}
-                        {duration ? ` · ${duration}` : ""}
+                      {/* The same labelled cross-tier price the home cards use.
+                          It was one undifferentiated grey string here and a
+                          structured label-and-value there, which meant the
+                          identical fact looked like two different facts
+                          depending on which page you read it on. */}
+                      <p className="mt-2 flex flex-wrap items-baseline gap-2 text-xs">
+                        {other === null ? (
+                          <span className="text-[10px] uppercase tracking-[0.18em] text-brass-dim">
+                            Premier only
+                          </span>
+                        ) : (
+                          <>
+                            <span className="text-[10px] uppercase tracking-[0.18em] text-brass-dim">
+                              {otherTier === "classic" ? "Classic" : "Premier"}
+                            </span>
+                            <span className="tnum text-bone-dim">{priceLabel(other)}</span>
+                          </>
+                        )}
+                        {duration ? <span className="text-bone-faint">· {duration}</span> : null}
                       </p>
                     </div>
                     <div className="flex shrink-0 items-center gap-5">
