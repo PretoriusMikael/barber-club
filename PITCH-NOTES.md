@@ -133,34 +133,26 @@ Two things that are easy to get wrong and expensive to reshoot:
 
 **No audio track at all** — not a silent one. It is worth about a third of the file, and the video is muted regardless. No separate poster frame needed: the hero photograph is the poster.
 
-**G. The scroll sequence — one continuous pass**
-
-This is the new one, and it is the most specific ask on the list.
-
-One unbroken pass of a blade fade, **locked-off camera, 4 to 6 seconds**, shot at a high frame rate and cut down to 48 frames. The whole idea is that *scrolling is cutting* — the visitor's own scroll drives the clippers up the neckline — so it has to be one continuous movement in one direction. **No cutaways, no camera moves, no re-framing.** If the camera drifts, the scrub reads as a wobble rather than a cut.
-
-Shoot it twice: once tight on the clippers, once slightly wider showing the barber's hand and the client's head. We will pick whichever holds up at size.
-
 ### 2.4 Technical specs for the photographer
 
 - **Deliver full-resolution originals**, minimum 3000px on the long edge. We handle compression and format conversion.
-- **Ratios:** 4:5 for service and portrait shots, 3:2 or 16:9 for the wide bands, 3:4 for barber portraits, 16:9 for both video items.
+- **Ratios:** 4:5 for service and portrait shots, 3:2 or 16:9 for the wide bands, 3:4 for barber portraits, 16:9 for the hero loop.
 - **Colour:** warm and consistent. The site is near-black, so frames with a dark or controlled background sit best.
 - **Keep the raw files.** Site formats change; camera originals do not.
 
-**Total outstanding: 26 stills, 11 shopfronts, one portrait per barber, one hero loop, one scroll sequence.**
+**Total outstanding: 26 stills, 11 shopfronts, one portrait per barber, one hero loop.**
 
-### 2.5 ⚠️ The two video moments on the preview are placeholder footage
+### 2.5 ⚠️ The hero video on the preview is placeholder footage
 
 **Please read this one before you show the preview to anyone else.**
 
-The hero loop and the scrolling blade-fade sequence both currently run **licensed stock footage**. It is not Barber Club, not your barbers, and not one of your shops. It is there so the mechanic can be seen, felt and signed off before anyone pays for a video shoot — and it is the one thing on the preview that is deliberately not real.
+The eight-second loop behind the headline currently runs **licensed stock footage**. It is not Barber Club, not your barbers, and not one of your shops. It is there so the effect can be seen and signed off before anyone pays for a video shoot — and it is the one thing on the preview that is deliberately not real.
 
 Three things follow from that:
 
-1. **It must not survive to launch.** Everywhere else the site refuses to use stock — the gallery says so on the page, in those words — so a stock clip on the same page is a contradiction waiting to be spotted. The moment your own footage lands it replaces these files and nothing else changes.
-2. **The clips double as the brief.** They are close enough to what we would ask for that they are worth sending to your videographer as reference. That is genuinely most of the value in them.
-3. **Nothing about the mechanic is placeholder.** The gating, the fallbacks, the byte budget and the way it behaves on a phone are all real and all measured. Only the pictures change.
+1. **It must not survive to launch.** Everywhere else the site refuses to use stock — the gallery says so on the page, in those words — so a stock clip on the same site is a contradiction waiting to be spotted. The moment your own footage lands it replaces this file and nothing else changes.
+2. **The clip doubles as the brief.** It is close enough to what we would ask for that it is worth sending to your videographer as reference. That is genuinely most of the value in it.
+3. **Nothing about the mechanic is placeholder.** The gating, the fallback and the byte budget are all real and all measured. Only the picture changes.
 
 ---
 
@@ -233,7 +225,7 @@ So the list above reads in proportion — this is finished and live in the demo:
 - **A plain-language answer to "which one is for me"** on the home page — how you get a chair, what a cut costs, what is on each menu, and when to pick which. That question is the whole basis of your two-tier offer and the current site never answers it anywhere.
 - **The group packages surfaced** — Johnnie Red, Black and Blue — with their own page and a block on the home page. At R450–R650 a head against R160 for a walk-in, this is the highest-value thing you sell and today it is buried on a sub-menu.
 - **A booking path from anywhere**: header, hero, a thumb-reach bar on mobile, and the end of every section.
-- **Two moments of motion, both of which pay for themselves.** An eight-second loop behind the headline, and a blade fade that advances as you scroll — your own scrolling drives the clippers. Both are decoration, so both are switched off wherever decoration would cost something: on a phone, on a metered or slow connection, or for anyone whose device asks for less movement. Those visitors get the still photograph and lose nothing they came for. Measured: the phone downloads **none** of it.
+- **Motion where it pays for itself.** A loop behind the headline, and service cards that tilt and catch the light as your mouse moves across them. Both are decoration, so both switch off wherever decoration would cost something: on a phone, on a metered or slow connection, or for anyone whose device asks for less movement. Those visitors lose nothing they came for — measured, the phone downloads **none** of the video.
 - **Built for phones first**, on the assumption of mobile data — because that is how almost everyone will arrive.
 - **Link previews and a browser icon**, so a link shared in a WhatsApp group looks like Barber Club rather than a grey rectangle — and **every branch has its own preview card**, naming the branch, its street and its own phone number. A Franschhoek link and a Malmesbury link no longer look identical.
 - **A cookie-safe map** on every branch page: it loads only when a visitor asks for it, which keeps the page fast and keeps the privacy notice truthful.

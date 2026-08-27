@@ -236,7 +236,7 @@ export function TierScroll() {
             {TIERS.map((tier) => (
               <div
                 key={tier}
-                className="flex flex-col rounded border border-line bg-ink-raised p-6 sm:p-8"
+                className="surface flex flex-col rounded border border-line bg-ink-raised p-6 sm:p-8"
               >
                 {/* Facts first, ask last. The pinned layout can afford to lead
                     with the tier's own description because the comparison sits
@@ -324,7 +324,7 @@ export function TierScroll() {
                   the row is always as tall as its longer answer and nothing
                   reflows as you scroll through the transition. */}
               <div className="lg:col-span-7">
-                <dl className="divide-y divide-line rounded-lg border border-line bg-ink-raised p-8 lg:p-10">
+                <dl className="surface divide-y divide-line rounded-lg border border-line bg-ink-raised p-8 lg:p-10">
                   {rows.map((row) => (
                     <div
                       key={row.label}

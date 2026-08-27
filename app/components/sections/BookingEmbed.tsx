@@ -138,7 +138,7 @@ function NoBookingSystem() {
           booking that used to sit here were written for us, not for a customer;
           they now live in PITCH-NOTES.md. */}
       <div className="grid gap-4 sm:grid-cols-2">
-        <div className="rounded border border-line bg-ink-raised p-6">
+        <div className="surface rounded border border-line bg-ink-raised p-6">
           <p className="text-xs uppercase tracking-[0.25em] text-brass-dim">Classic</p>
           <h3 className="mt-2 font-display text-2xl tracking-wide">No booking needed.</h3>
           <p className="mt-3 text-sm leading-relaxed text-bone-dim">
@@ -153,7 +153,7 @@ function NoBookingSystem() {
           </Link>
         </div>
 
-        <div className="rounded border border-line bg-ink-raised p-6">
+        <div className="surface rounded border border-line bg-ink-raised p-6">
           <p className="text-xs uppercase tracking-[0.25em] text-brass-dim">Premier</p>
           <h3 className="mt-2 font-display text-2xl tracking-wide">By appointment.</h3>
           <p className="mt-3 text-sm leading-relaxed text-bone-dim">

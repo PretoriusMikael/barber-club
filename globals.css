@@ -621,6 +621,171 @@
     display: none;
   }
 
+  /* ------------------------------------------------------------------
+     SURFACE — the shared card material.
+
+     A permanent light from above, painted over whatever background colour the
+     caller set. It is one declaration and it does more for the page than any
+     single component change: a flat fill on a near-black background has no
+     material, and eleven flat fills have no relationship to each other. Lit
+     from a common direction they read as one set of objects under one light,
+     which is the whole difference between "a dark website" and "a dark room".
+
+     Every card wears it — service, branch, package, tier panel, story tile —
+     so the tilt cards are not a special species, just the ones that also
+     answer the pointer.
+     ------------------------------------------------------------------ */
+  .surface {
+    background-image: linear-gradient(
+      to bottom,
+      rgba(244, 241, 234, 0.045),
+      rgba(244, 241, 234, 0.012) 22%,
+      transparent 55%
+    );
+  }
+
+  /* ------------------------------------------------------------------
+     TILT CARDS — see components/ui/TiltCard.tsx, which supplies only four
+     custom properties inside one rAF. Everything below is CSS, so it runs on
+     the compositor and costs nothing per frame on the main thread.
+     ------------------------------------------------------------------ */
+  .tilt-scene {
+    /* On the SCENE, not the card. Perspective applied to the transformed
+       element itself uses the element's own centre as the vanishing point,
+       which makes a row of cards each look independently warped; on the parent
+       they share one viewer position and the row reads as one surface. */
+    perspective: 1000px;
+  }
+
+  .tilt-card {
+    position: relative;
+    height: 100%;
+    transform-style: preserve-3d;
+    transform: rotateX(var(--tilt-rx, 0deg)) rotateY(var(--tilt-ry, 0deg));
+    /* The settle. Overridden to `none` while the pointer is actually over the
+       card — easing toward a cursor feels like lag, and snapping home when it
+       leaves feels like a bug, so the two states want opposite treatments. */
+    transition:
+      transform 600ms var(--ease-out-expo),
+      border-color 300ms var(--ease-out-expo),
+      box-shadow 400ms var(--ease-out-expo);
+  }
+
+  .tilt-scene[data-tilting] .tilt-card {
+    transition:
+      border-color 300ms var(--ease-out-expo),
+      box-shadow 400ms var(--ease-out-expo);
+  }
+
+  /* Lifts the type off the card face so it parallaxes against its own
+     background instead of being painted onto it. 1px would do nothing; much
+     more and the text detaches and starts to swim. */
+  .tilt-content {
+    position: relative;
+    display: flex;
+    height: 100%;
+    flex-direction: column;
+    transform: translateZ(22px);
+  }
+
+  /* The specular highlight. `screen` rather than a flat white overlay, so it
+     brightens what is under it instead of fogging it. */
+  .tilt-sheen {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    opacity: 0;
+    mix-blend-mode: screen;
+    transition: opacity 420ms var(--ease-out-expo);
+    /* Wide and flat, not round. A specular on a broad panel is a SWEEP — an
+       even circle in the middle of a card reads as a smudge on the glass
+       rather than as light coming off it. */
+    background:
+      /* A soft core over a broad falloff. Two gradients, because one alone is
+         either a wash with no centre or a disc with no bloom.
+
+         The core is deliberately restrained: on a matte card a bright spot in
+         the MIDDLE of the face reads as a light leak. The crisp part of the
+         highlight belongs on the edge, where a real lacquered or glass object
+         shows its brightest line — which is what .tilt-edge is for. */
+      radial-gradient(
+        34% 24% at var(--tilt-lx, 50%) var(--tilt-ly, 50%),
+        rgba(244, 241, 234, 0.085),
+        transparent 70%
+      ),
+      radial-gradient(
+        78% 46% at var(--tilt-lx, 50%) var(--tilt-ly, 50%),
+        rgba(244, 241, 234, 0.1),
+        rgba(244, 241, 234, 0.035) 42%,
+        transparent 72%
+      );
+  }
+
+  /* The lit edge — a 1px gradient border that brightens where the light falls.
+     This is the part that actually reads as material: a highlight in the middle
+     of a panel is a smudge, a highlight running along an edge is a bevel.
+
+     The two-layer mask is the standard gradient-border trick: paint the
+     gradient over the whole box, then punch out everything except the 1px
+     padding ring. `exclude` composites the content-box away from the full box. */
+  .tilt-edge {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    padding: 1px;
+    opacity: 0;
+    transition: opacity 420ms var(--ease-out-expo);
+    background: radial-gradient(
+      40% 54% at var(--tilt-lx, 50%) var(--tilt-ly, 50%),
+      rgba(244, 241, 234, 0.85),
+      rgba(244, 241, 234, 0.16) 38%,
+      transparent 68%
+    );
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    mask-composite: exclude;
+  }
+
+  .tilt-scene:hover .tilt-sheen,
+  .tilt-scene:hover .tilt-edge {
+    opacity: 1;
+  }
+
+  /* A card the pointer is on sits slightly proud of the page. The shadow is
+     brass-tinted at a very low alpha — a neutral black shadow on a near-black
+     background is invisible, and a warm one reads as the same light that is
+     making the highlight. */
+  .tilt-scene:hover .tilt-card {
+    box-shadow:
+      0 18px 40px -24px rgba(0, 0, 0, 0.9),
+      0 0 24px -12px rgba(200, 163, 90, 0.18);
+  }
+
+  /* No pointer, no effect — and never a card left stuck mid-tilt because a tap
+     fired `pointermove` once. The JS declines to attach here too; this is the
+     half that cannot be skipped by a script that fails to load. */
+  @media (hover: none), (pointer: coarse) {
+    .tilt-card {
+      transform: none;
+    }
+
+    .tilt-content {
+      transform: none;
+    }
+
+    .tilt-sheen,
+    .tilt-edge {
+      display: none;
+    }
+  }
+
   /* Hairline rule used between sections. */
   .rule {
     background-image: linear-gradient(
@@ -665,6 +830,18 @@
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+
+  /* Tilt cards: flat, unlit, motionless. The effect is entirely movement, and
+     there is no still version of it worth keeping. */
+  .tilt-card,
+  .tilt-content {
+    transform: none !important;
+  }
+
+  .tilt-sheen,
+  .tilt-edge {
+    display: none !important;
   }
 
   /* THE guard for scroll reveal, not a backstop for one.

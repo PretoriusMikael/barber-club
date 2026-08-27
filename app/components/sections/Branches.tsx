@@ -36,12 +36,11 @@ export function Branches({ limit }: { limit?: number }) {
             title="Eleven chairs' worth of Winelands."
             intro="Paarl, Stellenbosch, Wellington, Malmesbury, Durbanville and Franschhoek. Find the one on your way home."
           />
-          {limit ? (
-            <ButtonLink href="/branches" variant="ghost" size="sm" className="hidden md:inline-flex">
-              All {branches.length} branches
-              <ArrowRight aria-hidden className="h-4 w-4" />
-            </ButtonLink>
-          ) : null}
+          {/* No "all branches" link up here. The same section already ends with
+              one, and a desktop-only duplicate of a CTA that exists three
+              hundred pixels below it is the Services-section mistake in a
+              different place: two routes to one page, competing with the ask
+              that actually matters. */}
         </div>
 
         <div className="mt-10 flex flex-wrap gap-2" role="group" aria-label="Filter by town">

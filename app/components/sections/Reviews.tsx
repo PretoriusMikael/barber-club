@@ -36,7 +36,7 @@ export function Reviews() {
           {reviews.slice(0, 3).map((review) => (
             <figure
               key={review.id}
-              className="flex h-full flex-col rounded border border-line bg-ink-raised p-6"
+              className="surface flex h-full flex-col rounded border border-line bg-ink-raised p-6"
             >
               <div className="flex" aria-label={`${review.rating} out of 5`}>
                 {Array.from({ length: 5 }).map((_, i) => (

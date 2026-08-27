@@ -107,28 +107,6 @@ export const heroVideo = {
     "4–8s seamless loop: clippers meeting a neckline, slow push-in, shallow DOF, warm practical lighting. No audio track. Cut so the last frame matches the first — crossfade the tail back over the head if it does not. Keep it dark and low-contrast: the headline sits on top of it, and a bright frame here costs the first viewport its legibility. Shoot at a flagship branch (Val de Vie or Franschhoek).",
 };
 
-/**
- * The scroll-scrub sequence — see components/sections/CutSequence.tsx.
- *
- * ⚠️  PLACEHOLDER FOOTAGE, same caveat as the hero loop above.
- *
- * A frame sequence rather than a video, because scroll-scrubbing a video does
- * not work: setting `currentTime` seeks to the nearest keyframe and stutters
- * badly on mobile Safari. An all-intra encode fixes the seeking and costs about
- * four times as much (measured: 1,956 KB against 520 KB for these frames).
- */
-export const cutSequence = {
-  frames: 48,
-  /** 1-indexed, zero-padded to two digits: /sequence/cut/f01.webp … f48.webp */
-  path: "/sequence/cut",
-  width: 960,
-  height: 540,
-  /** The finished pass. What a gated device is left looking at. */
-  poster: "/sequence/cut/poster.webp",
-  brief:
-    "One continuous pass of a blade fade, locked-off camera, 4–6 seconds, shot at 48fps and cut to 48 frames. The whole point is that scrolling IS cutting, so the clippers must travel in one direction without a cutaway.",
-};
-
 /** Brand/atmosphere shots — the current site's own copy sells coffee, music and
  *  Wi-Fi as part of the experience, so photograph those, not just haircuts. */
 export const atmosphere: AssetBrief[] = [

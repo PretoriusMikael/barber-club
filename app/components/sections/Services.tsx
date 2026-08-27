@@ -17,6 +17,7 @@ import { BookButton, ButtonLink } from "@/components/ui/Button";
 import { TierToggle, TierBlurb } from "@/components/sections/TierToggle";
 import { priceLabel } from "@/lib/utils";
 import { Price } from "@/components/ui/Price";
+import { TiltCard } from "@/components/ui/TiltCard";
 
 /**
  * SECTION 03 — SERVICES, price-anchored and tier-aware.
@@ -123,7 +124,10 @@ function ServiceCard({ service, tier }: { service: Service; tier: Tier }) {
   const other = priceFor(service, tier === "classic" ? "premier" : "classic");
 
   return (
-    <article className="group flex h-full flex-col rounded border border-line bg-ink-raised p-6 transition-colors duration-300 hover:border-bone/25">
+    <TiltCard
+      className="group rounded border border-line bg-ink-raised hover:border-bone/25"
+      contentClassName="p-6"
+    >
       <div className="flex items-start justify-between gap-4">
         <h3 className="font-display text-2xl leading-none tracking-wide">{service.name}</h3>
         <Price value={price} className="tnum shrink-0 font-display text-2xl leading-none text-bone" />
@@ -144,33 +148,35 @@ function ServiceCard({ service, tier }: { service: Service; tier: Tier }) {
           Details
         </Link>
       </div>
-    </article>
+    </TiltCard>
   );
 }
 
 /** The last cell of the grid: the rest of the menu, as a card. */
 function FullMenuCard({ count }: { count: number }) {
   return (
-    <Link
-      href="/services"
-      className="group flex h-full flex-col justify-between rounded border border-brass-rule bg-brass/[0.04] p-6 transition-colors hover:border-brass/60 hover:bg-brass/[0.07]"
+    <TiltCard
+      className="group rounded border border-brass-rule bg-brass/[0.04] hover:border-brass/60"
+      contentClassName="justify-between p-6"
     >
-      <div>
-        <h3 className="font-display text-2xl leading-none tracking-wide">
-          {count} more services
-        </h3>
-        <p className="mt-4 text-sm leading-relaxed text-bone-dim">
-          Beard work, schoolboy and pensioner cuts, wash and style, nose and ear wax —
-          every price published, both tiers side by side.
-        </p>
-      </div>
-      <span className="mt-6 inline-flex items-center gap-2 text-xs uppercase tracking-wider text-brass">
-        See the full menu
-        <ArrowRight
-          aria-hidden
-          className="h-4 w-4 transition-transform duration-300 ease-[var(--ease-out-expo)] group-hover:translate-x-1"
-        />
-      </span>
-    </Link>
+      <Link href="/services" className="flex h-full flex-col justify-between">
+        <div>
+          <h3 className="font-display text-2xl leading-none tracking-wide">
+            {count} more services
+          </h3>
+          <p className="mt-4 text-sm leading-relaxed text-bone-dim">
+            Beard work, schoolboy and pensioner cuts, wash and style, nose and ear wax —
+            every price published, both tiers side by side.
+          </p>
+        </div>
+        <span className="mt-6 inline-flex items-center gap-2 text-xs uppercase tracking-wider text-brass">
+          See the full menu
+          <ArrowRight
+            aria-hidden
+            className="h-4 w-4 transition-transform duration-300 ease-[var(--ease-out-expo)] group-hover:translate-x-1"
+          />
+        </span>
+      </Link>
+    </TiltCard>
   );
 }

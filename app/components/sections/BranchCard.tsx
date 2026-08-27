@@ -23,7 +23,7 @@ export function BranchCard({ branch, className }: { branch: Branch; className?: 
   return (
     <article
       className={cn(
-        "flex h-full flex-col rounded border border-line bg-ink-raised p-5 transition-colors hover:border-bone/25",
+        "surface flex h-full flex-col rounded border border-line bg-ink-raised p-5 transition-colors hover:border-bone/25",
         className
       )}
     >
