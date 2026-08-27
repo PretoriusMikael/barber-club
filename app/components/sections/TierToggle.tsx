@@ -44,7 +44,13 @@ export function TierToggle({
             }}
             className={cn(
               "rounded-sm px-5 py-2.5 text-xs uppercase tracking-[0.15em] transition-colors sm:px-7 sm:text-sm",
-              active ? "bg-brass text-ink" : "text-bone-dim hover:text-bone"
+              // Selected is a raised wash of bone, not a filled brass pill.
+              // See globals.css: brass fill means "this is the button that
+              // books", and a segmented control is a state, not an action. Held
+              // against the real CTA side by side, a brass segment reads as a
+              // second, competing primary — and solid bone reads as a louder
+              // one, brighter than the button it sits beside.
+              active ? "bg-bone/15 text-bone" : "text-bone-dim hover:text-bone"
             )}
           >
             {tierInfo[tier].label}

@@ -95,8 +95,12 @@ function PackageCard({ pkg }: { pkg: GroupPackage }) {
           pkg.highlight ? "border-brass/50" : "border-line hover:border-bone/25"
         )}
       >
+      {/* Outlined, not filled. This is a label, not an action — and the card it
+          sits on already carries a brass border and a slow glow, so the "this
+          one" signal survives without a second filled brass object on a page
+          whose only filled brass object should be the booking button. */}
       {pkg.highlight ? (
-        <p className="mb-3 self-start rounded-sm bg-brass px-2 py-0.5 text-[10px] uppercase tracking-wider text-ink">
+        <p className="mb-3 self-start rounded-sm border border-brass/50 px-2 py-0.5 text-[10px] uppercase tracking-wider text-brass">
           Most booked
         </p>
       ) : null}

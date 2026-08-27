@@ -131,8 +131,10 @@ export function GalleryGrid({
               aria-pressed={active === tag}
               className={cn(
                 'h-9 rounded border px-4 text-xs uppercase tracking-wider transition-colors',
+                // Same selection language as the branch filters and the tier
+                // toggle — see TierToggle for why it is not brass.
                 active === tag
-                  ? 'border-brass bg-brass text-ink'
+                  ? 'border-bone/40 bg-bone/10 text-bone'
                   : 'border-line text-bone-dim hover:border-bone/40 hover:text-bone'
               )}
             >

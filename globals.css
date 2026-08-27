@@ -29,7 +29,19 @@
 
      `brass-dim` and `brass-rule` are a different job and stay: they are the
      muted label and hairline tones, quiet enough that they never compete with
-     a filled brass button. */
+     a filled brass button.
+
+     NEITHER IS A SELECTED STATE. The tier toggle, the branch filter and the
+     gallery filter all used to fill their active option with brass, which put
+     a second brass pill on the same line as the booking button in three
+     places. They now share one selection language — a raised wash of bone,
+     `bg-bone/15` on a segment and `bg-bone/10` with a `border-bone/40` on a
+     pill, with the label at full bone against `bone-dim` for the rest.
+
+     Solid bone was tried and rejected for the same reason as brass, inverted:
+     at #f4f1ea it is BRIGHTER than the CTA, so the selected filter became the
+     loudest object in the row and pulled the eye off the button. The wash
+     reads as selected without ever being the loudest thing on screen. */
   --color-brass: #c8a35a;
   --color-brass-hi: #e2c184;
   /* Was #8e733e. That measured 4.09:1 on ink-raised and 4.38:1 on ink — under

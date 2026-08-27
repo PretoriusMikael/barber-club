@@ -58,8 +58,10 @@ export function Branches({ limit }: { limit?: number }) {
                 aria-pressed={town === t}
                 className={cn(
                   "h-9 rounded border px-4 text-xs uppercase tracking-wider transition-colors",
+                  // Same selection language as the tier toggle and the gallery
+                  // filters — see TierToggle for why it is not brass.
                   town === t
-                    ? "border-brass bg-brass text-ink"
+                    ? "border-bone/40 bg-bone/10 text-bone"
                     : "border-line text-bone-dim hover:border-bone/40 hover:text-bone"
                 )}
               >
