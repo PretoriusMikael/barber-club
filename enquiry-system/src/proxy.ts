@@ -18,7 +18,9 @@ export async function proxy(request: NextRequest) {
   try {
     const tenant = await loadTenant(slug);
     if (tenant) {
-      const origins = tenant.allowedOrigins.filter((o) => /^https?:\/\/[a-z0-9.-]+(:\d+)?$/i.test(o));
+      // "https://*.vercel.app"-style wildcards are valid CSP, but allow every site on that
+      // host to embed the widget. Use them for preview testing only, never in production.
+      const origins = tenant.allowedOrigins.filter((o) => /^https?:\/\/(\*\.)?[a-z0-9.-]+(:\d+)?$/i.test(o));
       ancestors = ["'self'", ...origins].join(" ");
     }
   } catch (err) {

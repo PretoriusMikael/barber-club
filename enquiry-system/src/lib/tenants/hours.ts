@@ -1,4 +1,4 @@
-import type { TenantConfig, Weekday } from "./schema.ts";
+import type { WeeklyHours, Weekday } from "./schema.ts";
 
 /**
  * Opening hours, computed in code — never by the model.
@@ -8,7 +8,7 @@ import type { TenantConfig, Weekday } from "./schema.ts";
  * out the answer and hands the model a sentence it only has to repeat.
  */
 
-type Hours = TenantConfig["hours"];
+type Hours = WeeklyHours;
 
 const DAYS: Weekday[] = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
 const DAY_NAMES: Record<Weekday, string> = {

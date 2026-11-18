@@ -8,7 +8,8 @@
     "start": "next start --port 3100",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "node --test \"src/**/*.test.ts\""
+    "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test \"src/**/*.test.ts\"",
+    "kb:import": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/import-knowledge.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.119.1",

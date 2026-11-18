@@ -5,9 +5,12 @@ import type { PublicTenant } from "@/lib/tenants/schema";
 import type { ChatResponse } from "@/app/api/chat/route";
 
 type Role = "user" | "assistant";
+type PageLink = NonNullable<ChatResponse["actions"]["links"]>[number];
 interface Message {
   role: Role;
   content: string;
+  /** Pages suggested with this reply. Kept with the message so they survive navigation. */
+  links?: PageLink[];
 }
 interface Stored {
   conversationId: string | null;
@@ -106,7 +109,7 @@ export function ChatWidget({ tenant }: { tenant: PublicTenant }) {
 
       const reply = data as ChatResponse;
       setConversationId(reply.conversationId);
-      setMessages((m) => [...m, { role: "assistant", content: reply.reply }]);
+      setMessages((m) => [...m, { role: "assistant", content: reply.reply, links: reply.actions.links }]);
       setLeadCaptured(reply.leadCaptured);
       setActions(reply.actions);
       setDegraded(reply.degraded);
@@ -161,14 +164,32 @@ export function ChatWidget({ tenant }: { tenant: PublicTenant }) {
       {mode === "chat" && (
         <>
           <ol className="widget__messages" ref={listRef} aria-live="polite">
-            <li className="msg msg--assistant">{tenant.greeting}</li>
+            <li className="msg-group msg-group--assistant">
+              <p className="msg msg--assistant">{tenant.greeting}</p>
+            </li>
             {messages.map((m, i) => (
-              <li key={i} className={`msg msg--${m.role}`}>
-                {m.content}
+              <li key={i} className={`msg-group msg-group--${m.role}`}>
+                <p className={`msg msg--${m.role}`}>{m.content}</p>
+                {m.links && m.links.length > 0 && (
+                  <div className="msg__links">
+                    {m.links.map((link) => (
+                      <a
+                        key={link.url}
+                        className="widget__chip widget__chip--link"
+                        href={link.url}
+                        // Same site: navigate the page the visitor is on; widget.js reopens the chat there.
+                        target={link.sameSite ? "_top" : "_blank"}
+                        rel={link.sameSite ? undefined : "noopener noreferrer"}
+                      >
+                        {link.label} →
+                      </a>
+                    ))}
+                  </div>
+                )}
               </li>
             ))}
             {pending && (
-              <li className="msg msg--assistant msg--typing" aria-label="Assistant is typing">
+              <li className="msg-group msg-group--assistant msg msg--assistant msg--typing" aria-label="Assistant is typing">
                 <span />
                 <span />
                 <span />

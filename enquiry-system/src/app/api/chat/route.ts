@@ -38,6 +38,8 @@ export interface ChatResponse {
   /** True when the AI is unavailable or capped: the widget offers the plain form. */
   degraded: boolean;
   actions: {
+    /** Pages on the client's site, resolved from knowledge entries, never written by the model. */
+    links?: { label: string; url: string; sameSite: boolean }[];
     booking?: { url: string; label: string };
     contact?: { phone?: string; email?: string; whatsapp?: string };
   };
@@ -159,7 +161,7 @@ async function handleChat(req: NextRequest) {
       role: "developer",
       content: buildContextNote({
         nowLabel: localNow(tenant.timezone, now).label,
-        openSummary: openStatus(tenant.config.hours, tenant.timezone, now).summary,
+        openSummary: tenant.config.hours ? openStatus(tenant.config.hours, tenant.timezone, now).summary : undefined,
         contactCaptured: conversation.lead_id !== null,
         turnsRemaining: MAX_USER_TURNS - Math.floor(conversation.message_count / 2) - 1,
       }),
@@ -185,23 +187,30 @@ async function handleChat(req: NextRequest) {
   let handover = true;
   let degraded = false;
   let leadCaptured = conversation.lead_id !== null;
+  let links: NonNullable<ChatResponse["actions"]["links"]> = [];
   let meta: Record<string, unknown>;
 
   if (result?.turn) {
     const guarded = applyGuardrails({
       turn: result.turn,
       refBodies: new Map([...refs.entries].map(([ref, e]) => [ref, e.body])),
+      refUrls: new Map([...refs.entries].flatMap(([ref, e]) => (e.url ? [[ref, e.url] as const] : []))),
       latestUserMessage: body.message,
       enquiryTypeKeys: tenant.config.enquiryTypes.map((t) => t.key),
       fallbackMessage: tenant.config.fallbackMessage,
     });
     reply = guarded.reply;
     handover = guarded.handover;
+    links = guarded.linkRefs.map((ref) => {
+      const entry = refs.entries.get(ref)!;
+      return { label: entry.title, url: entry.url!, sameSite: isSameSite(entry.url!, tenant) };
+    });
     meta = {
       intent: result.turn.intent,
       enquiry_type: guarded.enquiryType,
       priority: guarded.priority,
       used_refs: guarded.usedRefs,
+      links: guarded.linkRefs,
       handover,
       handover_reason: result.turn.handover.reason,
       flags: guarded.flags,
@@ -248,10 +257,24 @@ async function handleChat(req: NextRequest) {
     leadCaptured,
     degraded,
     actions: {
+      ...(links.length ? { links } : {}),
       ...(booking.url && (intent === "booking" || intent === "quote_request") ? { booking: { url: booking.url, label: booking.label } } : {}),
       ...(handover ? { contact: contactActions } : {}),
     },
   });
+}
+
+/** A link to the client's own site opens in the same tab; anything else in a new one. */
+function isSameSite(url: string, tenant: Tenant): boolean {
+  try {
+    const host = new URL(url).hostname;
+    return tenant.allowedOrigins.some((origin) => {
+      const allowed = new URL(origin.replace("*.", "")).hostname;
+      return host === allowed || host.endsWith(`.${allowed}`);
+    });
+  } catch {
+    return false;
+  }
 }
 
 function contactActionsFor(tenant: Tenant) {

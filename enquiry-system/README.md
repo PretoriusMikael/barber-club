@@ -7,7 +7,10 @@ right priority) when it can't help.
 
 Stack: Next.js 16 · TypeScript · OpenAI Responses API (Structured Outputs) · Supabase (Postgres + RLS) · n8n
 
-![Widget on the demo site](docs/img/widget-demo.png)
+![The assistant on elevate-web.co.za (local build, mock model)](docs/img/elevate-desktop.png)
+
+**First tenant: Elevate** (elevate-web.co.za), Mikael's own studio site, where every change is
+tried before a client sees it. See [tenants/elevate/README.md](tenants/elevate/README.md).
 
 - **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**: decisions, request flow, data model, security, POPIA. Start here.
 - **[docs/N8N-WORKFLOWS.md](docs/N8N-WORKFLOWS.md)**: the webhook contract and the workflows to build.
@@ -53,7 +56,7 @@ Leads, transcripts and token usage are in the Supabase table editor (`leads`, `m
 ## Checks
 
 ```bash
-npm test            # unit tests: guardrails, contact verification, opening hours
+npm test            # unit tests: guardrails, links, contact verification, hours, knowledge import
 npm run typecheck
 npm run lint
 npm run build
@@ -68,14 +71,28 @@ npm run build
 The client's domain must be listed in `tenants.allowed_origins`, or the browser will refuse to show
 the widget.
 
-## Add a client (v1: SQL)
+## Add a client
 
-1. `insert into tenants (slug, name, industry, allowed_origins, config) values (…)`. Use the shape
-   in `seed.sql`. It is validated by `src/lib/tenants/schema.ts`, and an invalid config keeps that
-   tenant offline.
-2. Insert their `knowledge_entries`: services with prices, FAQs, policies and areas. **If it isn't
-   here, the assistant won't say it.**
+Copy `tenants/elevate/` as the pattern.
+
+1. **`tenant.sql`**: name, allowed sites, daily cap, and the config (assistant voice, enquiry types,
+   priority and handover rules, booking link, notification email, privacy URL). It is validated by
+   `src/lib/tenants/schema.ts`, and an invalid config keeps that tenant offline.
+2. **Knowledge**: import it from Markdown instead of typing it in. If you built their site, give the
+   site an `/llms-full.txt` and import that, so the assistant reads the same facts as the pages:
+   ```bash
+   npm run kb:import -- --tenant <slug> --source https://their-site/llms-full.txt --source tenants/<slug>/site-guide.md > kb.sql
+   ```
+   A `### Heading` becomes an entry, and a `Page: https://…` line makes it a page the assistant can
+   suggest. Read the SQL, then run it. **If it isn't in the knowledge base, the assistant won't say it.**
 3. Give them the embed snippet.
+
+## Guiding visitors around a site
+
+Entries with a page URL can be suggested as links under a reply. The model only names an entry by
+its reference; the server turns that into the link, so the assistant can't link to a page that
+doesn't exist. Links to the client's own site open in the same tab, and an open chat reopens on the
+next page with its history.
 
 ## Environment
 

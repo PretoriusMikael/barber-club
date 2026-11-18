@@ -32,7 +32,7 @@ export function turnJsonSchema(enquiryTypeKeys: string[]) {
   return {
     type: "object",
     additionalProperties: false,
-    required: ["reply", "intent", "enquiry_type", "priority", "grounded", "used_refs", "contact", "enquiry_summary", "handover"],
+    required: ["reply", "intent", "enquiry_type", "priority", "grounded", "used_refs", "links", "contact", "enquiry_summary", "handover"],
     properties: {
       reply: {
         type: "string",
@@ -54,6 +54,11 @@ export function turnJsonSchema(enquiryTypeKeys: string[]) {
         type: "array",
         items: { type: "string" },
         description: "The [K#] refs of every knowledge entry the reply relied on. Empty if none.",
+      },
+      links: {
+        type: "array",
+        items: { type: "string" },
+        description: 'Refs of entries marked "(has a page)" to show as page links under the reply. At most 2. Empty if none.',
       },
       contact: {
         type: "object",
@@ -89,6 +94,7 @@ export const turnSchema = z.object({
   priority: z.enum(PRIORITIES),
   grounded: z.boolean(),
   used_refs: z.array(z.string()).max(20),
+  links: z.array(z.string()).max(5),
   contact: z.object({
     name: z.string().nullable(),
     email: z.string().nullable(),

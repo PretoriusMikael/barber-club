@@ -27,15 +27,21 @@ export const tenantConfigSchema = z.object({
     whatsapp: z.string().regex(/^[1-9]\d{7,14}$/).optional(),
     address: z.string().max(300).optional(),
   }),
-  hours: z.object({
-    mon: dayHours,
-    tue: dayHours,
-    wed: dayHours,
-    thu: dayHours,
-    fri: dayHours,
-    sat: dayHours,
-    sun: dayHours,
-  }),
+  /**
+   * Trading hours. Omit for a business without opening hours (a freelancer,
+   * an online-only service): the assistant then never says "open" or "closed".
+   */
+  hours: z
+    .object({
+      mon: dayHours,
+      tue: dayHours,
+      wed: dayHours,
+      thu: dayHours,
+      fri: dayHours,
+      sat: dayHours,
+      sun: dayHours,
+    })
+    .optional(),
   enquiryTypes: z
     .array(
       z.object({
@@ -68,13 +74,16 @@ export const tenantConfigSchema = z.object({
 });
 
 export type TenantConfig = z.infer<typeof tenantConfigSchema>;
-export type Weekday = keyof TenantConfig["hours"];
+export type WeeklyHours = NonNullable<TenantConfig["hours"]>;
+export type Weekday = keyof WeeklyHours;
 
 export interface KnowledgeEntry {
   id: string;
-  kind: "about" | "service" | "faq" | "policy" | "location";
+  kind: "about" | "service" | "faq" | "policy" | "location" | "page";
   title: string;
   body: string;
+  /** The page this entry describes. Only these URLs can ever be suggested to a visitor. */
+  url: string | null;
 }
 
 export interface Tenant {

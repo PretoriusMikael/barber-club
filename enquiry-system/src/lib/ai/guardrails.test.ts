@@ -17,6 +17,7 @@ function turn(overrides: Partial<ModelTurn> = {}): ModelTurn {
     priority: "low",
     grounded: true,
     used_refs: ["K1"],
+    links: [],
     contact: { name: null, email: null, phone: null },
     enquiry_summary: null,
     handover: { needed: false, reason: null },
@@ -24,8 +25,10 @@ function turn(overrides: Partial<ModelTurn> = {}): ModelTurn {
   };
 }
 
+const refUrls = new Map([["K2", "https://example.com/areas"]]);
+
 const run = (t: ModelTurn, latestUserMessage = "How much is a call-out?") =>
-  applyGuardrails({ turn: t, refBodies, latestUserMessage, enquiryTypeKeys: ["repair", "emergency", "other"], fallbackMessage: FALLBACK });
+  applyGuardrails({ turn: t, refBodies, refUrls, latestUserMessage, enquiryTypeKeys: ["repair", "emergency", "other"], fallbackMessage: FALLBACK });
 
 test("moneyAmounts parses rand formats and ignores trailing numbers", () => {
   assert.deepEqual(moneyAmounts("R650, 30 minutes and R1,200.00 or R 1 950"), ["650", "1200", "1950"]);
@@ -79,4 +82,32 @@ test("emergencies are urgent and handed over", () => {
 test("unknown enquiry type becomes 'other'", () => {
   const r = run(turn({ enquiry_type: "solar" }));
   assert.equal(r.enquiryType, "other");
+});
+
+test("moneyAmounts reads other currencies, and not words that merely start with R", () => {
+  assert.deepEqual(moneyAmounts("$1,200 or US$900, €750, £600 and 500 USD"), ["1200", "900", "750", "600", "500"]);
+  assert.deepEqual(moneyAmounts("Room 12 and PR650"), []);
+});
+
+test("a dollar price not in the cited entry is replaced", () => {
+  const r = run(turn({ reply: "Internationally it's from $2,400." }));
+  assert.equal(r.reply, FALLBACK);
+});
+
+test("page links: only real refs that have a page, at most two", () => {
+  const r = run(turn({ reply: "We work in Bellville; the areas page below lists the rest.", used_refs: ["K2"], links: ["K2", "K1", "K9"] }));
+  assert.deepEqual(r.linkRefs, ["K2"]);
+  assert.ok(r.flags.includes("invalid_link_ref"));
+});
+
+test("URLs typed into the reply are stripped", () => {
+  const r = run(turn({ reply: "See https://evil.example/x for details.", used_refs: [] }));
+  assert.equal(r.reply, "See for details.");
+  assert.ok(r.flags.includes("url_in_reply"));
+});
+
+test("a corrected reply loses its page suggestions", () => {
+  const r = run(turn({ reply: "It's about R9,999.", used_refs: ["K2"], links: ["K2"] }));
+  assert.equal(r.reply, FALLBACK);
+  assert.deepEqual(r.linkRefs, []);
 });

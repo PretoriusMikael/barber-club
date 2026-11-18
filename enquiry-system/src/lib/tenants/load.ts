@@ -35,7 +35,7 @@ export async function loadTenant(slug: string): Promise<Tenant | null> {
     } else {
       const { data: kb, error: kbError } = await db
         .from("knowledge_entries")
-        .select("id, kind, title, body")
+        .select("id, kind, title, body, url")
         .eq("tenant_id", row.id)
         .eq("is_published", true)
         .order("kind")
